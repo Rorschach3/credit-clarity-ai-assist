@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -101,7 +100,6 @@ export default function PlaceholderDashboard() {
         
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Credit Score Cards */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Experian</CardTitle>
@@ -145,7 +143,6 @@ export default function PlaceholderDashboard() {
             </Card>
           </div>
           
-          {/* Recent Activity and Summary Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -233,7 +230,6 @@ export default function PlaceholderDashboard() {
                   <div>
                     <label htmlFor="file-upload">
                       <Button 
-                        as="span" 
                         disabled={isUploading}
                         className="cursor-pointer"
                       >
