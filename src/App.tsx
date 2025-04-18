@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import PlaceholderDashboard from "./pages/PlaceholderDashboard";
 import NotFoundPage from "./pages/NotFoundPage";
+import AdminPage from "./pages/AdminPage";
 
 // Layouts
 import MainLayout from "./components/layout/MainLayout";
@@ -66,6 +66,14 @@ const App = () => (
             element={
               <MainLayout>
                 <PlaceholderDashboard />
+              </MainLayout>
+            } 
+          />
+          <Route 
+            path="/admin" 
+            element={
+              <MainLayout>
+                <AdminPage />
               </MainLayout>
             } 
           />

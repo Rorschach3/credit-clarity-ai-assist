@@ -1,1 +1,5 @@
+
 project_id = "xnxpwdnwsolkstyatwld"
+
+[functions.generate-shipping-label]
+verify_jwt = true
