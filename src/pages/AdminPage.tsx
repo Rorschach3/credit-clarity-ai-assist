@@ -128,16 +128,14 @@ export default function AdminPage() {
                     </Button>
                   ) : (
                     <div className="space-y-2">
-                      <Button
-                        as="a"
+                      <a
                         href={dispute.shipping_label_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        size="sm"
-                        variant="outline"
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
                       >
                         View Label
-                      </Button>
+                      </a>
                       {dispute.tracking_number && (
                         <div className="text-sm text-muted-foreground">
                           Tracking: {dispute.tracking_number}
