@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, Check, AlertCircle } from "lucide-react";
+import { Loader2, FileText, Check, AlertCircle, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,30 +25,68 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete' | 'error'>('idle');
+  const [subscription, setSubscription] = useState<{subscribed: boolean; subscription_tier?: string}>();
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setScanStatus('idle');
+  const checkSubscription = useCallback(async () => {
+    try {
+      const { data: { url } } = await supabase.functions.invoke('check-subscription');
+      const response = await fetch(url);
+      const subData = await response.json();
+      setSubscription(subData);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  }, []);
+
+  const handleSubscribe = async () => {
+    try {
+      const { data: { url } } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: 'price_H5ggYwtDq4fbrJ' }, // Replace with your actual price ID
+      });
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not initiate subscription process. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    setFile(file);
+    setScanStatus('idle');
+
+    // Check subscription status
+    await checkSubscription();
+  };
+
   const handleScan = async () => {
-    if (!file) return;
+    if (!file || !subscription?.subscribed) return;
 
     setIsScanning(true);
     setScanStatus('scanning');
 
     try {
-      // Call Supabase Edge Function to analyze the document
-      const formData = new FormData();
-      formData.append('file', file);
+      // Upload file to Supabase Storage
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error('User not authenticated');
+
+      const filePath = `${userId}/${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('credit_reports')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
 
       // Simulate document analysis with mock data for now
-      // In production, replace with actual API call to AI service
       setTimeout(() => {
-        // Mock negative items data
         const mockNegativeItems: NegativeItem[] = [
           {
             id: "1",
@@ -84,8 +122,6 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
 
         setScanStatus('complete');
         setIsScanning(false);
-        
-        // Pass the analyzed data to parent component
         onScanComplete(mockNegativeItems);
         
         toast({
@@ -104,6 +140,29 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       });
     }
   };
+
+  if (!subscription?.subscribed) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Subscription Required</CardTitle>
+          <CardDescription>
+            Upload and analyze your credit reports with our AI-powered system
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center">
+          <Lock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Premium Feature</h3>
+          <p className="text-gray-600 mb-4">
+            Subscribe to access our AI-powered credit report analysis
+          </p>
+          <Button onClick={handleSubscribe}>
+            Subscribe Now
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
