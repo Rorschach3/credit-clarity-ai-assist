@@ -1,10 +1,11 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileText, Check, AlertCircle, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/App"; // Import the auth context
 
 interface DocumentScannerProps {
   onScanComplete: (negativeItems: NegativeItem[]) => void;
@@ -27,17 +28,40 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete' | 'error'>('idle');
   const [subscription, setSubscription] = useState<{subscribed: boolean; subscription_tier?: string}>();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the current authenticated user
+
+  // Check subscription status when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      checkSubscription();
+    }
+  }, [user]);
 
   const checkSubscription = useCallback(async () => {
     try {
       const { data: { url } } = await supabase.functions.invoke('check-subscription');
+      if (!url) {
+        console.error('No URL returned from check-subscription function');
+        return;
+      }
+      
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const subData = await response.json();
+      console.log('Subscription data:', subData);
       setSubscription(subData);
     } catch (error) {
       console.error('Error checking subscription:', error);
+      toast({
+        title: "Subscription Check Failed",
+        description: "Unable to verify your subscription status. Please try again.",
+        variant: "destructive"
+      });
     }
-  }, []);
+  }, [toast]);
 
   const handleSubscribe = async () => {
     try {
@@ -46,8 +70,11 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       });
       if (url) {
         window.location.href = url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
+      console.error('Error creating checkout session:', error);
       toast({
         title: "Error",
         description: "Could not initiate subscription process. Please try again.",
@@ -59,31 +86,63 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
-    const file = e.target.files[0];
-    setFile(file);
+    const selectedFile = e.target.files[0];
+    
+    // Check if file is a PDF
+    if (selectedFile.type !== 'application/pdf' && 
+        !selectedFile.type.includes('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF or image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setFile(selectedFile);
     setScanStatus('idle');
 
     // Check subscription status
-    await checkSubscription();
+    if (user) {
+      await checkSubscription();
+    }
   };
 
   const handleScan = async () => {
-    if (!file || !subscription?.subscribed) return;
+    if (!file || !subscription?.subscribed || !user) {
+      toast({
+        title: "Error",
+        description: !subscription?.subscribed 
+          ? "You need a subscription to scan documents" 
+          : "Please upload a file first",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsScanning(true);
     setScanStatus('scanning');
 
     try {
-      // Upload file to Supabase Storage
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) throw new Error('User not authenticated');
-
-      const filePath = `${userId}/${file.name}`;
-      const { error: uploadError } = await supabase.storage
+      // Upload file to Supabase Storage in credit_reports bucket
+      const userId = user.id;
+      const filePath = `${userId}/${Date.now()}_${file.name}`;
+      
+      console.log('Uploading file to:', filePath);
+      
+      const { error: uploadError, data } = await supabase.storage
         .from('credit_reports')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully:', data?.path);
 
       // Simulate document analysis with mock data for now
       setTimeout(() => {
