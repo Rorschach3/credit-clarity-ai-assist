@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { type NegativeItem } from "@/components/document/DocumentScanner";
+import { type NegativeItem } from "@/types/document";
 
 interface NegativeItemsListProps {
   items: NegativeItem[];

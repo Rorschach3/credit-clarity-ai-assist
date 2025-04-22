@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { DocumentScanner, type NegativeItem } from "@/components/document/DocumentScanner";
+import { DocumentScanner } from "@/components/document/DocumentScanner";
+import { type NegativeItem } from "@/types/document";
 import { NegativeItemsList } from "@/components/disputes/NegativeItemsList";
 import { DisputeLetterGenerator } from "@/components/disputes/DisputeLetterGenerator";
 import { Button } from "@/components/ui/button";
