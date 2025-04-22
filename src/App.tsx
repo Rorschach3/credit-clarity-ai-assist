@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import PlaceholderDashboard from "./pages/PlaceholderDashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdminPage from "./pages/AdminPage";
+import DisputeGeneratorPage from "./pages/DisputeGeneratorPage";
 
 // Layouts
 import MainLayout from "./components/layout/MainLayout";
@@ -74,6 +76,14 @@ const App = () => (
             element={
               <MainLayout>
                 <AdminPage />
+              </MainLayout>
+            } 
+          />
+          <Route 
+            path="/dispute-generator" 
+            element={
+              <MainLayout>
+                <DisputeGeneratorPage />
               </MainLayout>
             } 
           />
