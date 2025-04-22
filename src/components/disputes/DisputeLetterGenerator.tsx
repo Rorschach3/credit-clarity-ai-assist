@@ -1,25 +1,18 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type NegativeItem } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, Send, Download, Eye } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
+import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
+import { BureauTabs } from "./BureauTabs";
 
 interface DisputeLetterGeneratorProps {
   items: NegativeItem[];
   onComplete: () => void;
 }
-
-type Bureau = 'Experian' | 'TransUnion' | 'Equifax';
-
-const bureauAddresses: Record<Bureau, string> = {
-  'Experian': 'Experian\nP.O. Box 4500\nAllen, TX 75013',
-  'TransUnion': 'TransUnion LLC\nConsumer Dispute Center\nP.O. Box 2000\nChester, PA 19016',
-  'Equifax': 'Equifax Information Services LLC\nP.O. Box 740256\nAtlanta, GA 30374'
-};
 
 // Temporary default user ID until authentication is implemented
 const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
@@ -83,7 +76,6 @@ Sincerely,
 [Your Social Security Number]
 `;
 
-    // Update the letters state with the generated content
     setLetters(prev => ({
       ...prev,
       [bureau]: letterContent
@@ -92,20 +84,10 @@ Sincerely,
     setIsGenerating(false);
   };
 
-  // Generate letters for all selected bureaus at once
-  const generateAllLetters = () => {
-    bureaus.forEach(bureau => {
-      if (!letters[bureau]) {
-        generateLetter(bureau);
-      }
-    });
-  };
-
   const saveDisputes = async () => {
     setIsSaving(true);
     
     try {
-      // Save each letter to the disputes table
       const promises = bureaus.map(async (bureau) => {
         const letter = letters[bureau];
         if (!letter) return null;
@@ -117,7 +99,7 @@ Sincerely,
             mailing_address: bureauAddresses[bureau],
             letter_content: letter,
             status: 'created',
-            user_id: TEMP_USER_ID // Add the temporary user ID here
+            user_id: TEMP_USER_ID
           })
           .select();
         
@@ -132,7 +114,6 @@ Sincerely,
         description: "Your dispute letters have been saved successfully.",
       });
       
-      // Call the onComplete callback to notify the parent component
       onComplete();
     } catch (error) {
       console.error("Error saving disputes:", error);
@@ -165,24 +146,6 @@ Sincerely,
           <>
             <div className="flex justify-between items-center mb-4">
               <Button 
-                variant="outline" 
-                onClick={generateAllLetters}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating
-                  </>
-                ) : (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Generate All Letters
-                  </>
-                )}
-              </Button>
-              
-              <Button 
                 onClick={saveDisputes}
                 disabled={isSaving || bureaus.some(bureau => !letters[bureau])}
               >
@@ -200,63 +163,18 @@ Sincerely,
               </Button>
             </div>
             
-            <Tabs defaultValue={bureaus[0]} value={activeTab} onValueChange={(value) => setActiveTab(value as Bureau)}>
-              <TabsList className="w-full">
-                {bureaus.map(bureau => (
-                  <TabsTrigger 
-                    key={bureau} 
-                    value={bureau}
-                    className="flex-1"
-                  >
-                    {bureau}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {bureaus.map(bureau => (
-                <TabsContent key={bureau} value={bureau} className="mt-4">
-                  {!letters[bureau] ? (
-                    <div className="flex flex-col items-center justify-center p-8 border rounded-md">
-                      <p className="text-center text-muted-foreground mb-4">
-                        Generate a dispute letter for {bureau} based on the selected items
-                      </p>
-                      <Button 
-                        onClick={() => generateLetter(bureau)}
-                        disabled={isGenerating}
-                      >
-                        {isGenerating ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating
-                          </>
-                        ) : (
-                          "Generate Letter"
-                        )}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border rounded-md p-4">
-                      <div className="bg-muted p-6 rounded-md mb-4 whitespace-pre-wrap font-mono text-sm">
-                        {letters[bureau]}
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Send className="h-4 w-4 mr-2" />
-                          Send
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
+            <BureauTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              bureaus={bureaus}
+              letters={letters}
+              isGenerating={isGenerating}
+              onGenerateLetter={generateLetter}
+            />
           </>
         )}
       </CardContent>
     </Card>
   );
 }
+
