@@ -21,6 +21,9 @@ const bureauAddresses: Record<Bureau, string> = {
   'Equifax': 'Equifax Information Services LLC\nP.O. Box 740256\nAtlanta, GA 30374'
 };
 
+// Temporary default user ID until authentication is implemented
+const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
+
 export function DisputeLetterGenerator({ items, onComplete }: DisputeLetterGeneratorProps) {
   const [activeTab, setActiveTab] = useState<Bureau>('Experian');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -113,7 +116,8 @@ Sincerely,
             credit_bureau: bureau,
             mailing_address: bureauAddresses[bureau],
             letter_content: letter,
-            status: 'created'
+            status: 'created',
+            user_id: TEMP_USER_ID // Add the temporary user ID here
           })
           .select();
         
