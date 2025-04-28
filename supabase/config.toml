@@ -15,3 +15,18 @@ verify_jwt = true
 
 [functions.check-admin-status]
 verify_jwt = true
+
+[functions.ai-document-extraction]
+verify_jwt = true
+
+[functions.ai-report-analysis]
+verify_jwt = true
+
+[functions.ai-letter-generator]
+verify_jwt = true
+
+[functions.ai-letter-review]
+verify_jwt = true
+
+[functions.create-storage-bucket]
+verify_jwt = true
