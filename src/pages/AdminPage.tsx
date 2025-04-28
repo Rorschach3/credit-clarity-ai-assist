@@ -31,6 +31,8 @@ interface Dispute {
 interface User {
   id: string
   email: string
+  subscription_tier?: string
+  active?: boolean
 }
 
 export default function AdminPage() {
@@ -85,7 +87,7 @@ export default function AdminPage() {
       setUsers(data?.map(sub => ({
         id: sub.user_id || '',
         email: sub.email || '',
-        subscription: sub.subscription_tier,
+        subscription_tier: sub.subscription_tier,
         active: sub.subscribed
       })) || [])
     }
@@ -172,7 +174,7 @@ export default function AdminPage() {
       case 'label_generated':
         return <Badge variant="secondary">Label Generated</Badge>
       case 'sent':
-        return <Badge variant="success" className="bg-green-500 text-white">Sent</Badge>
+        return <Badge className="bg-green-500 text-white">Sent</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -380,10 +382,10 @@ export default function AdminPage() {
                       users.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.subscription || 'None'}</TableCell>
+                          <TableCell>{user.subscription_tier || 'None'}</TableCell>
                           <TableCell>
                             {user.active ? (
-                              <Badge variant="success" className="bg-green-500 text-white">Active</Badge>
+                              <Badge className="bg-green-500 text-white">Active</Badge>
                             ) : (
                               <Badge variant="outline">Inactive</Badge>
                             )}
