@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.customer-portal]
 verify_jwt = true
+
+[functions.check-admin-status]
+verify_jwt = true

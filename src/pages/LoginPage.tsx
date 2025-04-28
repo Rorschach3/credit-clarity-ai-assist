@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
 import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -20,25 +21,34 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // For now we'll just show a success toast since Supabase isn't connected yet
-      toast.success("Logged in successfully! Please connect Supabase to enable authentication.");
-      // In a real implementation with Supabase:
-      // const { error } = await supabase.auth.signInWithPassword({
-      //   email,
-      //   password,
-      // });
-      // if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Navigate to dashboard after login is integrated
-      // For now, redirect to a placeholder dashboard
-      setTimeout(() => {
-        setIsLoading(false);
+      if (error) throw error;
+      
+      // Check if the user is an admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .single();
+      
+      toast.success("Logged in successfully!");
+      
+      // Redirect based on user role
+      if (roleData && roleData.role === 'admin') {
+        navigate('/admin');
+      } else {
         navigate('/placeholder-dashboard');
-      }, 2000);
+      }
     } catch (error) {
       setIsLoading(false);
       toast.error("Login failed. Please check your credentials and try again.");
       console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

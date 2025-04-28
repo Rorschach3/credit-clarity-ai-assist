@@ -23,6 +23,9 @@ import DisputeGeneratorPage from "./pages/DisputeGeneratorPage";
 // Layouts
 import MainLayout from "./components/layout/MainLayout";
 
+// Auth components
+import AdminRoute from "./components/auth/AdminRoute";
+
 const queryClient = new QueryClient();
 
 // Create AuthProvider to manage auth state
@@ -134,11 +137,11 @@ const App = () => (
             <Route 
               path="/admin" 
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <MainLayout>
                     <AdminPage />
                   </MainLayout>
-                </ProtectedRoute>
+                </AdminRoute>
               } 
             />
             <Route 
