@@ -1,13 +1,54 @@
 
+import { useState } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/App";
 
 interface SubscriptionPromptProps {
   onSubscribe: () => void;
 }
 
 export function SubscriptionPrompt({ onSubscribe }: SubscriptionPromptProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleViewPlans = () => {
+    navigate("/pricing");
+  };
+
+  const handleQuickSubscribe = async () => {
+    if (!user) {
+      toast.info("Please log in to subscribe");
+      navigate("/login", { state: { returnTo: "/dispute-generator" } });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Use the Plus plan as the default quick subscribe option
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: 'price_plus_monthly' },
+      });
+      
+      if (error) throw new Error(error.message);
+      if (!data?.url) throw new Error("No checkout URL returned");
+      
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error("Could not initiate subscription process. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -19,12 +60,21 @@ export function SubscriptionPrompt({ onSubscribe }: SubscriptionPromptProps) {
       <CardContent className="text-center">
         <Lock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <h3 className="text-lg font-semibold mb-2">Premium Feature</h3>
-        <p className="text-gray-600 mb-4">
-          Subscribe to access our AI-powered credit report analysis
+        <p className="text-gray-600 mb-6">
+          Subscribe to access our AI-powered credit report analysis and dispute letter generation
         </p>
-        <Button onClick={onSubscribe}>
-          Subscribe Now
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button 
+            variant="default" 
+            onClick={handleQuickSubscribe}
+            disabled={isLoading}
+          >
+            {isLoading ? "Loading..." : "Subscribe Now"}
+          </Button>
+          <Button variant="outline" onClick={handleViewPlans}>
+            View All Plans
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -5,60 +5,89 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/App";
+import { useNavigate } from "react-router-dom";
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const plans = [
     {
+      id: "basic",
       name: "Basic",
-      description: "For individuals with a few negative items to dispute",
-      price: billingCycle === "monthly" ? 19.99 : 199.9,
+      description: "Get started with credit repair",
+      price: billingCycle === "monthly" ? 10 : 100,
       features: [
-        "Upload 1 credit bureau report",
+        "1 dispute letter to each credit bureau",
         "AI credit report analysis",
-        "Up to 5 dispute letters",
         "Standard mail delivery",
         "Email support"
       ],
       recommended: false,
-      cta: "Get Started"
+      priceId: billingCycle === "monthly" ? "price_basic_monthly" : "price_basic_yearly"
     },
     {
-      name: "Premium",
-      description: "Our most popular plan for comprehensive credit repair",
-      price: billingCycle === "monthly" ? 39.99 : 399.9,
+      id: "plus",
+      name: "Plus",
+      description: "Our most popular credit repair plan",
+      price: billingCycle === "monthly" ? 25 : 250,
       features: [
-        "Upload all 3 credit bureau reports",
+        "Dispute letters for all negative items (up to 8)",
         "Advanced AI credit report analysis",
-        "Unlimited dispute letters",
         "Priority mail delivery with tracking",
         "Response validation assistance",
         "Priority email & chat support"
       ],
       recommended: true,
-      cta: "Get Started"
+      priceId: billingCycle === "monthly" ? "price_plus_monthly" : "price_plus_yearly"
     },
     {
-      name: "Enterprise",
-      description: "For professionals managing multiple credit profiles",
-      price: billingCycle === "monthly" ? 99.99 : 999.9,
+      id: "pro",
+      name: "Pro",
+      description: "Maximum credit repair coverage",
+      price: billingCycle === "monthly" ? 50 : 500,
       features: [
-        "Everything in Premium",
-        "Manage up to 5 credit profiles",
-        "Custom dispute letter templates",
+        "Everything in Plus",
+        "Dispute letters sent to credit bureaus AND creditors",
         "Advanced credit score tracking",
         "Certified mail delivery",
         "Dedicated account manager",
         "Phone support"
       ],
       recommended: false,
-      cta: "Contact Sales"
+      priceId: billingCycle === "monthly" ? "price_pro_monthly" : "price_pro_yearly"
     }
   ];
 
-  const handleSubscribe = (planName: string) => {
-    toast.info(`Please connect Supabase and Stripe to enable ${planName} plan subscription.`);
+  const handleSubscribe = async (plan: typeof plans[0]) => {
+    if (!user) {
+      toast.info("Please log in to subscribe");
+      navigate("/login", { state: { returnTo: "/pricing" } });
+      return;
+    }
+
+    try {
+      setIsLoading(plan.id);
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: plan.priceId },
+      });
+      
+      if (error) throw new Error(error.message);
+      if (!data?.url) throw new Error("No checkout URL returned");
+      
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error("Could not initiate subscription process. Please try again.");
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   return (
@@ -94,9 +123,9 @@ export default function PricingPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {plans.map((plan, index) => (
+        {plans.map((plan) => (
           <Card 
-            key={index} 
+            key={plan.id} 
             className={`relative ${
               plan.recommended ? "border-brand-600 shadow-lg" : "border-gray-200"
             }`}
@@ -112,7 +141,7 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent>
               <div className="mb-6">
-                <p className="text-4xl font-bold">${plan.price.toFixed(2)}</p>
+                <p className="text-4xl font-bold">${plan.price}</p>
                 <p className="text-gray-500">per {billingCycle === "monthly" ? "month" : "year"}</p>
               </div>
               <ul className="space-y-3">
@@ -125,21 +154,14 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              {plan.name === "Enterprise" ? (
-                <Link to="/contact" className="w-full">
-                  <Button className="w-full" variant={plan.recommended ? "default" : "outline"}>
-                    {plan.cta}
-                  </Button>
-                </Link>
-              ) : (
-                <Button 
-                  className="w-full" 
-                  variant={plan.recommended ? "default" : "outline"}
-                  onClick={() => handleSubscribe(plan.name)}
-                >
-                  {plan.cta}
-                </Button>
-              )}
+              <Button 
+                className="w-full" 
+                variant={plan.recommended ? "default" : "outline"}
+                onClick={() => handleSubscribe(plan)}
+                disabled={isLoading === plan.id}
+              >
+                {isLoading === plan.id ? "Loading..." : "Subscribe"}
+              </Button>
             </CardFooter>
           </Card>
         ))}
