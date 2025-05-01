@@ -9,111 +9,16 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      disputes: {
-        Row: {
-          created_at: string | null
-          credit_bureau: string
-          id: string
-          letter_content: string
-          mailing_address: string
-          shipping_label_url: string | null
-          status: string
-          tracking_number: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          credit_bureau: string
-          id?: string
-          letter_content: string
-          mailing_address: string
-          shipping_label_url?: string | null
-          status?: string
-          tracking_number?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          credit_bureau?: string
-          id?: string
-          letter_content?: string
-          mailing_address?: string
-          shipping_label_url?: string | null
-          status?: string
-          tracking_number?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      subscribers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          stripe_customer_id: string | null
-          subscribed: boolean
-          subscription_end: string | null
-          subscription_tier: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -228,8 +133,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "user"],
-    },
+    Enums: {},
   },
 } as const
