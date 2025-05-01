@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/App";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/schema";
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       try {
         // Check if user has admin role
         const { data, error } = await supabase
-          .from('user_roles')
+          .from(Tables.user_roles)
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'admin')

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { Tables } from "@/integrations/supabase/schema"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Package, Mail } from "lucide-react"
 import { DisputeManagement } from "@/components/admin/DisputeManagement"
@@ -44,7 +45,7 @@ export default function AdminPage() {
   async function fetchDisputes() {
     setIsLoading(true)
     const { data, error } = await supabase
-      .from('disputes')
+      .from(Tables.disputes)
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -65,7 +66,7 @@ export default function AdminPage() {
     // Get users from auth.users via RPC or other secure method
     // For this example, we'll use the subscribers table which contains user info
     const { data, error } = await supabase
-      .from('subscribers')
+      .from(Tables.subscribers)
       .select('user_id, email, subscription_tier, subscribed')
 
     if (error) {

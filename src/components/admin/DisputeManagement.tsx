@@ -1,7 +1,7 @@
-
 import { useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { Dispute, Tables } from "@/integrations/supabase/schema"
 import {
   Table,
   TableBody,
@@ -14,18 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Printer } from "lucide-react"
-
-interface Dispute {
-  id: string
-  credit_bureau: string
-  mailing_address: string
-  status: string
-  letter_content: string
-  shipping_label_url: string | null
-  tracking_number: string | null
-  created_at: string
-  user_id: string
-}
 
 interface DisputeManagementProps {
   isLoading: boolean
@@ -52,11 +40,11 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         }
       })
 
-      if (response.error) throw new Error(response.error)
+      if (response.error) throw new Error(response.error.message)
 
       // Update dispute with shipping label URL and tracking number
       const { error: updateError } = await supabase
-        .from('disputes')
+        .from(Tables.disputes)
         .update({
           shipping_label_url: response.data.labelUrl,
           tracking_number: response.data.trackingNumber,
@@ -73,7 +61,7 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
 
       // Refresh disputes list
       fetchDisputes()
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
@@ -85,7 +73,7 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
   async function markDisputeAsSent(dispute: Dispute) {
     try {
       const { error } = await supabase
-        .from('disputes')
+        .from(Tables.disputes)
         .update({
           status: 'sent'
         })

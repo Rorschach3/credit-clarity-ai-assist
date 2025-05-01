@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/schema";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function LoginPage() {
       
       // Check if the user is an admin
       const { data: roleData } = await supabase
-        .from('user_roles')
+        .from(Tables.user_roles)
         .select('role')
         .eq('user_id', data.user.id)
         .single();

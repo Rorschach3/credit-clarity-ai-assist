@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { UserRole, Tables } from "@/integrations/supabase/schema"
 import {
   Table,
   TableBody,
@@ -34,7 +35,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
     try {
       // Check if user already has an entry in user_roles
       const { data: existingRole } = await supabase
-        .from('user_roles')
+        .from(Tables.user_roles)
         .select('*')
         .eq('user_id', userId)
         .eq('role', 'admin')
@@ -43,11 +44,11 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
       if (!existingRole) {
         // Add user to admin role
         const { error } = await supabase
-          .from('user_roles')
+          .from(Tables.user_roles)
           .insert({
             user_id: userId,
             role: 'admin'
-          })
+          } as any) // Using 'any' to bypass TypeScript check since our schema.ts types aren't connected to Supabase's generated types
 
         if (error) throw error
 
@@ -76,7 +77,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
   async function revokeAdminAccess(userId: string) {
     try {
       const { error } = await supabase
-        .from('user_roles')
+        .from(Tables.user_roles)
         .delete()
         .eq('user_id', userId)
         .eq('role', 'admin')
