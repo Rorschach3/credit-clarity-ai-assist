@@ -48,7 +48,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
           .insert({
             user_id: userId,
             role: 'admin'
-          } as any) // Using 'any' to bypass TypeScript check since our schema.ts types aren't connected to Supabase's generated types
+          } as UserRole)
 
         if (error) throw error
 

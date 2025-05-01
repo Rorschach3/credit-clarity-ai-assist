@@ -1,24 +1,11 @@
-
 import { useEffect, useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { Tables } from "@/integrations/supabase/schema"
+import { Tables, Dispute } from "@/integrations/supabase/schema"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Package, Mail } from "lucide-react"
 import { DisputeManagement } from "@/components/admin/DisputeManagement"
 import { UserManagement } from "@/components/admin/UserManagement"
-
-interface Dispute {
-  id: string
-  credit_bureau: string
-  mailing_address: string
-  status: string
-  letter_content: string
-  shipping_label_url: string | null
-  tracking_number: string | null
-  created_at: string
-  user_id: string
-}
 
 interface User {
   id: string

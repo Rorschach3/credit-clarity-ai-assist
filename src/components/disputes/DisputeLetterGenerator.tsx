@@ -100,7 +100,7 @@ Sincerely,
             letter_content: letter,
             status: 'pending',
             user_id: TEMP_USER_ID
-          } as any) // Using 'any' to bypass TypeScript check
+          })
           .select();
         
         if (error) throw error;

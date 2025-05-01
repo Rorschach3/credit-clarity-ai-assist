@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
 import { Progress } from "@/components/ui/progress";
 import { aiService, GeneratedLetter } from "@/utils/ai-service";
 import { DisputeLetterPreview } from "./DisputeLetterPreview";
+import { Tables } from "@/integrations/supabase/schema";
 
 interface EnhancedDisputeLetterGeneratorProps {
   items: NegativeItem[];
@@ -157,7 +157,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
         if (!letter) return null;
         
         const { data, error } = await supabase
-          .from('disputes')
+          .from(Tables.disputes)
           .insert({
             credit_bureau: bureau,
             mailing_address: bureauAddresses[bureau],
