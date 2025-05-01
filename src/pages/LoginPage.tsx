@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Get the return URL from location state if it exists
+  const returnTo = location.state?.returnTo || '/placeholder-dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +45,16 @@ export default function LoginPage() {
       if (roleData && roleData.role === 'admin') {
         navigate('/admin');
       } else {
-        navigate('/placeholder-dashboard');
+        navigate(returnTo);
       }
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
-      toast.error("Login failed. Please check your credentials and try again.");
+      
+      if (error.message === "Invalid login credentials") {
+        toast.error("Invalid email or password. Please try again.");
+      } else {
+        toast.error("Login failed. Please try again later.");
+      }
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);
