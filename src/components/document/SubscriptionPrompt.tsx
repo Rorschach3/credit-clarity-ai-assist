@@ -31,6 +31,18 @@ export function SubscriptionPrompt({ onSubscribe }: SubscriptionPromptProps) {
     try {
       setIsLoading(true);
       
+      // Check if the user has a free plan first
+      const { data: checkData, error: checkError } = await supabase.functions.invoke('check-subscription');
+      
+      if (checkError) throw new Error(checkError.message);
+      
+      // If user already has a subscription (including free), proceed
+      if (checkData?.subscribed) {
+        toast.success("You already have access to this feature");
+        onSubscribe();
+        return;
+      }
+      
       // Use the Plus plan as the default quick subscribe option
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId: 'price_plus_monthly' },

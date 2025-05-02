@@ -41,8 +41,57 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if the user is on a free tier already
+    const { data: existingSubscriber } = await supabaseClient
+      .from("subscribers")
+      .select("*")
+      .eq("email", user.email)
+      .single();
+      
+    // If the user has a free tier subscription, return it
+    if (existingSubscriber && existingSubscriber.subscription_tier === "free") {
+      logStep("User has free tier subscription", { 
+        subscriptionTier: "free", 
+        maximumDisputeLetters: 1 
+      });
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        subscription_tier: "free",
+        maximum_dispute_letters: 1,
+        includes_creditor_disputes: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) {
+      // If no Stripe key is set, we assume this is a development environment and default to free tier
+      logStep("No Stripe key set, defaulting to free tier");
+      
+      // Update the subscriber to free tier
+      await supabaseClient.from("subscribers").upsert({
+        email: user.email,
+        user_id: user.id,
+        subscribed: true,
+        subscription_tier: "free",
+        maximum_dispute_letters: 1,
+        includes_creditor_disputes: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'email' });
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        subscription_tier: "free",
+        maximum_dispute_letters: 1,
+        includes_creditor_disputes: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
@@ -51,17 +100,24 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
+      logStep("No customer found, setting to free tier");
       await supabaseClient.from("subscribers").upsert({
         email: user.email,
         user_id: user.id,
         stripe_customer_id: null,
-        subscribed: false,
-        subscription_tier: null,
-        subscription_end: null,
+        subscribed: true,
+        subscription_tier: "free",
+        maximum_dispute_letters: 1,
+        includes_creditor_disputes: false,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'email' });
-      return new Response(JSON.stringify({ subscribed: false }), {
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        subscription_tier: "free",
+        maximum_dispute_letters: 1,
+        includes_creditor_disputes: false
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -77,9 +133,9 @@ serve(async (req) => {
     });
     
     const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionTier = null;
+    let subscriptionTier = "free";
     let subscriptionEnd = null;
-    let maximumDisputeLetters = 0;
+    let maximumDisputeLetters = 1;
     let includesCreditorDisputes = false;
 
     if (hasActiveSub) {
@@ -93,11 +149,7 @@ serve(async (req) => {
       const priceData = price.lookup_key || priceId;
       
       // Determine subscription tier from price
-      if (priceData.includes("basic")) {
-        subscriptionTier = "basic";
-        maximumDisputeLetters = 3; // 1 for each bureau
-        includesCreditorDisputes = false;
-      } else if (priceData.includes("plus")) {
+      if (priceData.includes("plus")) {
         subscriptionTier = "plus";
         maximumDisputeLetters = 8; // Up to 8 dispute items
         includesCreditorDisputes = false;
@@ -105,18 +157,28 @@ serve(async (req) => {
         subscriptionTier = "pro";
         maximumDisputeLetters = 8; // Up to 8 dispute items
         includesCreditorDisputes = true;
+      } else {
+        // Default to free tier if price doesn't match known tiers
+        subscriptionTier = "free";
+        maximumDisputeLetters = 1;
+        includesCreditorDisputes = false;
       }
       
-      logStep("Determined subscription tier", { priceId, subscriptionTier, maximumDisputeLetters, includesCreditorDisputes });
+      logStep("Determined subscription tier", { 
+        priceId, 
+        subscriptionTier, 
+        maximumDisputeLetters, 
+        includesCreditorDisputes 
+      });
     } else {
-      logStep("No active subscription found");
+      logStep("No active subscription found, setting to free tier");
     }
 
     await supabaseClient.from("subscribers").upsert({
       email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
-      subscribed: hasActiveSub,
+      subscribed: true, // Everyone has at least free tier access
       subscription_tier: subscriptionTier,
       subscription_end: subscriptionEnd,
       maximum_dispute_letters: maximumDisputeLetters,
@@ -125,14 +187,14 @@ serve(async (req) => {
     }, { onConflict: 'email' });
 
     logStep("Updated database with subscription info", {
-      subscribed: hasActiveSub,
+      subscribed: true,
       subscriptionTier,
       maximumDisputeLetters,
       includesCreditorDisputes
     });
     
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
+      subscribed: true,
       subscription_tier: subscriptionTier,
       subscription_end: subscriptionEnd,
       maximum_dispute_letters: maximumDisputeLetters,

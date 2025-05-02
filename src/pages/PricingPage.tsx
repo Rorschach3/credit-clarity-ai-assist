@@ -17,18 +17,17 @@ export default function PricingPage() {
 
   const plans = [
     {
-      id: "basic",
-      name: "Basic",
-      description: "Get started with credit repair",
-      price: billingCycle === "monthly" ? 10 : 100,
+      id: "free",
+      name: "Free",
+      description: "Get started for free",
+      price: 0,
       features: [
-        "1 dispute letter to each credit bureau",
-        "AI credit report analysis",
-        "Standard mail delivery",
+        "Basic credit report analysis",
+        "1 dispute letter to one bureau",
         "Email support"
       ],
       recommended: false,
-      priceId: billingCycle === "monthly" ? "price_basic_monthly" : "price_basic_yearly"
+      priceId: "free" // No price ID needed for free tier
     },
     {
       id: "plus",
@@ -64,6 +63,12 @@ export default function PricingPage() {
   ];
 
   const handleSubscribe = async (plan: typeof plans[0]) => {
+    if (plan.id === "free") {
+      toast.info("Free plan doesn't require subscription");
+      navigate("/dispute-generator");
+      return;
+    }
+    
     if (!user) {
       toast.info("Please log in to subscribe");
       navigate("/login", { state: { returnTo: "/pricing" } });
@@ -160,7 +165,7 @@ export default function PricingPage() {
                 onClick={() => handleSubscribe(plan)}
                 disabled={isLoading === plan.id}
               >
-                {isLoading === plan.id ? "Loading..." : "Subscribe"}
+                {plan.id === "free" ? "Get Started" : isLoading === plan.id ? "Loading..." : "Subscribe"}
               </Button>
             </CardFooter>
           </Card>

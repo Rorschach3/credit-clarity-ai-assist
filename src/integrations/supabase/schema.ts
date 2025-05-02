@@ -16,3 +16,9 @@ export const Tables = {
 } as const;
 
 export type TableName = typeof Tables[keyof typeof Tables];
+
+// Extend Subscriber type with additional fields that might be added as the app evolves
+export interface SubscriberWithFeatures extends Subscriber {
+  maximum_dispute_letters?: number;
+  includes_creditor_disputes?: boolean;
+}
