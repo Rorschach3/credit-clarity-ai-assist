@@ -55,7 +55,15 @@ serve(async (req) => {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
     } else {
-      logStep("No customer found, will create new customer");
+      // Create a new customer if none exists
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id
+        }
+      });
+      customerId = newCustomer.id;
+      logStep("Created new customer", { customerId });
     }
 
     // Get the price ID from the request
@@ -63,17 +71,15 @@ serve(async (req) => {
     if (!priceId) throw new Error("Price ID is required");
     logStep("Processing price ID", { priceId });
 
-    // The actual price IDs should be defined in your Stripe dashboard
-    // For now, we'll use the placeholders the user sent
-    
     // Map our internal pricing IDs to actual Stripe price IDs
+    // You would replace these with your actual Stripe price IDs from your dashboard
     const priceIdMap: Record<string, string> = {
-      "price_basic_monthly": "price_basic_monthly", // Replace with actual Stripe price ID
-      "price_basic_yearly": "price_basic_yearly", // Replace with actual Stripe price ID
-      "price_plus_monthly": "price_plus_monthly", // Replace with actual Stripe price ID
-      "price_plus_yearly": "price_plus_yearly", // Replace with actual Stripe price ID
-      "price_pro_monthly": "price_pro_monthly", // Replace with actual Stripe price ID
-      "price_pro_yearly": "price_pro_yearly", // Replace with actual Stripe price ID
+      "price_basic_monthly": process.env.STRIPE_PRICE_BASIC_MONTHLY || "price_basic_monthly",
+      "price_basic_yearly": process.env.STRIPE_PRICE_BASIC_YEARLY || "price_basic_yearly",
+      "price_plus_monthly": process.env.STRIPE_PRICE_PLUS_MONTHLY || "price_plus_monthly",
+      "price_plus_yearly": process.env.STRIPE_PRICE_PLUS_YEARLY || "price_plus_yearly", 
+      "price_pro_monthly": process.env.STRIPE_PRICE_PRO_MONTHLY || "price_pro_monthly",
+      "price_pro_yearly": process.env.STRIPE_PRICE_PRO_YEARLY || "price_pro_yearly",
     };
 
     const stripePriceId = priceIdMap[priceId] || priceId;
@@ -81,7 +87,6 @@ serve(async (req) => {
     // Create a subscription session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       line_items: [
         {
           price: stripePriceId,

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/App";
+import { SubscriberWithFeatures } from "@/integrations/supabase/schema";
 
 interface SubscriptionPromptProps {
   onSubscribe: () => void;
@@ -14,8 +15,35 @@ interface SubscriptionPromptProps {
 
 export function SubscriptionPrompt({ onSubscribe }: SubscriptionPromptProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriberWithFeatures | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check subscription status when component mounts if user is logged in
+    if (user) {
+      checkSubscription();
+    }
+  }, [user]);
+
+  const checkSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking subscription:', error);
+        return;
+      }
+      
+      if (data?.subscribed) {
+        setSubscription(data as SubscriberWithFeatures);
+        // If the user already has an active subscription, allow access
+        onSubscribe();
+      }
+    } catch (err) {
+      console.error('Failed to check subscription status:', err);
+    }
+  };
 
   const handleViewPlans = () => {
     navigate("/pricing");
@@ -60,6 +88,11 @@ export function SubscriptionPrompt({ onSubscribe }: SubscriptionPromptProps) {
       setIsLoading(false);
     }
   };
+
+  // If the user already has access, don't show the prompt
+  if (subscription?.subscribed) {
+    return null;
+  }
 
   return (
     <Card className="w-full">

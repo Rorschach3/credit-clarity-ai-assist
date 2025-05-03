@@ -1,6 +1,7 @@
 
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRef } from "react";
 
 interface FileUploadZoneProps {
   file: File | null;
@@ -8,6 +9,8 @@ interface FileUploadZoneProps {
 }
 
 export function FileUploadZone({ file, onFileChange }: FileUploadZoneProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
@@ -21,6 +24,10 @@ export function FileUploadZone({ file, onFileChange }: FileUploadZoneProps) {
     onFileChange(selectedFile);
   };
 
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
   if (!file) {
     return (
       <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6">
@@ -30,16 +37,19 @@ export function FileUploadZone({ file, onFileChange }: FileUploadZoneProps) {
         </p>
         <input
           id="file-upload"
+          ref={fileInputRef}
           type="file"
           className="hidden"
           accept=".pdf,.jpg,.jpeg,.png"
           onChange={handleFileChange}
         />
-        <label htmlFor="file-upload" className="mt-4">
-          <Button variant="outline" className="cursor-pointer">
-            Select File
-          </Button>
-        </label>
+        <Button 
+          variant="outline" 
+          className="cursor-pointer mt-4"
+          onClick={handleButtonClick}
+        >
+          Select File
+        </Button>
       </div>
     );
   }

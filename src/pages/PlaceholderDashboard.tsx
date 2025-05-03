@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -18,14 +19,19 @@ import {
   BarChart4, 
   Clock, 
   CheckCircle2, 
-  AlertTriangle 
+  AlertTriangle,
+  Settings 
 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/App";
 
 export default function PlaceholderDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isUploading, setIsUploading] = useState(false);
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
+  const { user } = useAuth();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -46,6 +52,29 @@ export default function PlaceholderDashboard() {
         toast.success("AI analysis complete! 8 negative items found.");
       }, 3000);
     }, 2000);
+  };
+
+  const handleManageSubscription = async () => {
+    if (!user) {
+      toast.error("Please log in to manage your subscription");
+      return;
+    }
+
+    try {
+      setIsManagingSubscription(true);
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) throw new Error(error.message);
+      if (!data?.url) throw new Error("No portal URL returned");
+      
+      // Redirect to Stripe Customer Portal
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error creating customer portal session:', error);
+      toast.error("Could not open subscription management. Please try again.");
+    } finally {
+      setIsManagingSubscription(false);
+    }
   };
 
   const creditScores = {
@@ -447,7 +476,16 @@ export default function PlaceholderDashboard() {
                 </div>
               </div>
               
-              <div className="mt-6 pt-6 border-t">
+              <div className="mt-6 pt-6 border-t flex flex-col gap-3">
+                <Button 
+                  variant="default" 
+                  className="w-full"
+                  onClick={handleManageSubscription}
+                  disabled={isManagingSubscription}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  {isManagingSubscription ? "Loading..." : "Manage Subscription"}
+                </Button>
                 <Button variant="outline" className="w-full">
                   Cancel Subscription
                 </Button>
