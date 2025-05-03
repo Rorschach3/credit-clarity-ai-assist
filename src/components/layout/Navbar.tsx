@@ -78,6 +78,7 @@ export default function Navbar() {
                   <Link to="/" className="text-lg font-medium" onClick={closeMenu}>Home</Link>
                   <Link to="/about" className="text-lg font-medium" onClick={closeMenu}>About</Link>
                   <Link to="/pricing" className="text-lg font-medium" onClick={closeMenu}>Pricing</Link>
+                  <Link to="/faq" className="text-lg font-medium" onClick={closeMenu}>FAQ</Link>
                   <Link to="/contact" className="text-lg font-medium" onClick={closeMenu}>Contact</Link>
                   
                   {user ? (
@@ -108,6 +109,7 @@ export default function Navbar() {
               <Link to="/" className="text-gray-700 hover:text-brand-600 transition-colors">Home</Link>
               <Link to="/about" className="text-gray-700 hover:text-brand-600 transition-colors">About</Link>
               <Link to="/pricing" className="text-gray-700 hover:text-brand-600 transition-colors">Pricing</Link>
+              <Link to="/faq" className="text-gray-700 hover:text-brand-600 transition-colors">FAQ</Link>
               <Link to="/contact" className="text-gray-700 hover:text-brand-600 transition-colors">Contact</Link>
               {user && (
                 <Link to="/dispute-generator" className="text-gray-700 hover:text-brand-600 transition-colors">Dispute Generator</Link>

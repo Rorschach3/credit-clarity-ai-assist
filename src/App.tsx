@@ -21,6 +21,7 @@ import PlaceholderDashboard from "./pages/PlaceholderDashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdminPage from "./pages/AdminPage";
 import DisputeGeneratorPage from "./pages/DisputeGeneratorPage";
+import FaqPage from "./pages/FaqPage";
 
 // Layouts
 import MainLayout from "./components/layout/MainLayout";
@@ -121,6 +122,14 @@ const App = () => (
               element={
                 <MainLayout>
                   <ContactPage />
+                </MainLayout>
+              } 
+            />
+            <Route 
+              path="/faq" 
+              element={
+                <MainLayout>
+                  <FaqPage />
                 </MainLayout>
               } 
             />
