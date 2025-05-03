@@ -36,10 +36,10 @@ serve(async (req) => {
     const bureauAddress = bureauAddresses[bureau as keyof typeof bureauAddresses] || '';
     
     // Format the items for the letter
-    const itemsText = items.map((item, index) => {
+    const itemsText = items.map((item: any, index: number) => {
       return `Item ${index + 1}: ${item.creditorName}
 Account Number: ${item.accountNumber}
-Reason for Dispute: ${item.recommendedReason || "This information is inaccurate"}`;
+Reason for Dispute: ${item.recommendedReason || item.reason || "This information is inaccurate"}`;
     }).join('\n\n');
     
     // Send request to OpenAI to generate letter
@@ -57,7 +57,8 @@ Reason for Dispute: ${item.recommendedReason || "This information is inaccurate"
             content: `You are an expert at writing effective credit dispute letters under the Fair Credit Reporting Act (FCRA). 
             Create a formal, professional dispute letter to a credit bureau that is compliant with all legal requirements.
             Format the letter properly with addresses, date, subject line, and formal closure.
-            Include all the required elements for a successful dispute.`
+            Include all the required elements for a successful dispute.
+            Be detailed and precise with the reasoning, providing custom language for each type of dispute.`
           },
           {
             role: "user",
@@ -67,7 +68,13 @@ Reason for Dispute: ${item.recommendedReason || "This information is inaccurate"
             
             ${itemsText}
             
-            Include a request for investigation under FCRA and removal of inaccurate information.
+            Include the following in the letter:
+            1. Request for investigation under FCRA Section 611
+            2. Statement that these items are inaccurate or incomplete
+            3. Request for removal of inaccurate information
+            4. Request for updated credit report showing corrections
+            5. Reminder of the 30-day investigation requirement
+            
             The letter should be from ${userData?.name || '[YOUR NAME]'} at ${userData?.address || '[YOUR ADDRESS]'}.
             Make it formal, professional, and legally compliant with the FCRA.`
           }
@@ -86,7 +93,21 @@ Reason for Dispute: ${item.recommendedReason || "This information is inaccurate"
 
     // Quality check the letter (simulated for demo)
     const qualityScore = 95; // In a real implementation, this would be calculated
-    const suggestions = ["Consider adding certified mail tracking", "Request investigation within 30 days"];
+    
+    // Generate suggestions based on letter content
+    let suggestions = ["Consider adding certified mail tracking"];
+    
+    if (!letterContent.includes("certified mail")) {
+      suggestions.push("Send via certified mail with return receipt");
+    }
+    
+    if (!letterContent.toLowerCase().includes("section 611")) {
+      suggestions.push("Add specific reference to FCRA Section 611");
+    }
+    
+    if (!letterContent.toLowerCase().includes("30 day") && !letterContent.toLowerCase().includes("30-day")) {
+      suggestions.push("Mention the 30-day investigation requirement");
+    }
     
     return new Response(JSON.stringify({
       content: letterContent,

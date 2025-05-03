@@ -6,14 +6,17 @@ import { EnhancedNegativeItemsList } from "@/components/disputes/EnhancedNegativ
 import { EnhancedDisputeLetterGenerator } from "@/components/disputes/EnhancedDisputeLetterGenerator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, FileText, FileCheck, MailOpen } from "lucide-react";
+import { Bot, FileText, FileCheck, MailOpen, Plus, Upload } from "lucide-react";
 import { DisputeAnalysis } from "@/utils/ai-service";
+import { ManualDisputeForm } from "@/components/disputes/ManualDisputeForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function DisputeGeneratorPage() {
   const [step, setStep] = useState<'scan' | 'select' | 'generate' | 'complete'>('scan');
   const [negativeItems, setNegativeItems] = useState<NegativeItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<NegativeItem[]>([]);
   const [disputeAnalysis, setDisputeAnalysis] = useState<DisputeAnalysis | null>(null);
+  const [entryMethod, setEntryMethod] = useState<'scan' | 'manual'>('scan');
   const { toast } = useToast();
 
   const handleScanComplete = (items: NegativeItem[], analysis?: DisputeAnalysis) => {
@@ -45,6 +48,19 @@ export default function DisputeGeneratorPage() {
     });
   };
 
+  const handleManualItemCreated = (newItem: NegativeItem) => {
+    setNegativeItems(prev => [...prev, newItem]);
+    
+    toast({
+      title: "Item Added",
+      description: "Dispute item has been added successfully.",
+    });
+    
+    if (step === 'scan') {
+      setStep('select');
+    }
+  };
+
   const resetProcess = () => {
     setStep('scan');
     setNegativeItems([]);
@@ -74,15 +90,15 @@ export default function DisputeGeneratorPage() {
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-2">AI-Powered Credit Report Dispute Assistant</h1>
       <p className="text-muted-foreground mb-8">
-        Upload your credit report, our AI will identify negative items and generate customized dispute letters
+        Upload your credit report or manually enter account details, our AI will help generate customized dispute letters
       </p>
       
       <div className="flex items-center justify-center mb-10">
         <div className="flex items-center">
           {getStepIcon(step, 'scan')}
           <div className="ml-2 mr-6">
-            <p className={`font-medium ${step === 'scan' ? 'text-primary' : ''}`}>Scan Report</p>
-            <p className="text-xs text-muted-foreground">Upload & analyze</p>
+            <p className={`font-medium ${step === 'scan' ? 'text-primary' : ''}`}>Add Data</p>
+            <p className="text-xs text-muted-foreground">Upload or enter manually</p>
           </div>
         </div>
         <div className="w-16 h-[2px] bg-muted"></div>
@@ -113,12 +129,47 @@ export default function DisputeGeneratorPage() {
       
       <div className="grid grid-cols-1 gap-8">
         {step === 'scan' && (
-          <EnhancedDocumentScanner onScanComplete={handleScanComplete} />
+          <Tabs defaultValue={entryMethod} onValueChange={(value) => setEntryMethod(value as 'scan' | 'manual')} className="w-full">
+            <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
+              <TabsTrigger value="scan" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Upload Credit Report
+              </TabsTrigger>
+              <TabsTrigger value="manual" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Manual Entry
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="scan">
+              <EnhancedDocumentScanner onScanComplete={handleScanComplete} />
+            </TabsContent>
+            <TabsContent value="manual">
+              <ManualDisputeForm onItemCreated={handleManualItemCreated} />
+            </TabsContent>
+          </Tabs>
         )}
         
         {step === 'select' && (
           <>
-            <EnhancedDocumentScanner onScanComplete={handleScanComplete} />
+            <Tabs defaultValue={entryMethod} onValueChange={(value) => setEntryMethod(value as 'scan' | 'manual')} className="w-full">
+              <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
+                <TabsTrigger value="scan" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Credit Report
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Manual Entry
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="scan">
+                <EnhancedDocumentScanner onScanComplete={handleScanComplete} />
+              </TabsContent>
+              <TabsContent value="manual">
+                <ManualDisputeForm onItemCreated={handleManualItemCreated} />
+              </TabsContent>
+            </Tabs>
+            
             <EnhancedNegativeItemsList 
               items={negativeItems} 
               analysis={disputeAnalysis}
