@@ -1,4 +1,5 @@
 
+// src/functions/ai-letter-generator/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -25,6 +26,7 @@ serve(async (req) => {
     }
 
     console.log(`Generating dispute letter for ${bureau} with ${items.length} items`);
+    console.log(`User data provided: ${JSON.stringify(userData)}`);
     
     // Determine bureau address based on input
     const bureauAddresses = {
@@ -41,6 +43,31 @@ serve(async (req) => {
 Account Number: ${item.accountNumber}
 Reason for Dispute: ${item.recommendedReason || item.reason || "This information is inaccurate"}`;
     }).join('\n\n');
+    
+    // Format user's personal information for the letter
+    let userInfo = {};
+    let userAddress = '[YOUR ADDRESS], [YOUR CITY], [YOUR STATE] [YOUR ZIP]';
+    let userName = '[YOUR NAME]';
+    
+    if (userData) {
+      userName = userData.fullName || userName;
+      if (userData.address && userData.city && userData.state && userData.zip) {
+        userAddress = `${userData.address}, ${userData.city}, ${userData.state} ${userData.zip}`;
+      }
+      
+      userInfo = {
+        name: userData.fullName || '[YOUR NAME]',
+        address: userData.address || '[YOUR ADDRESS]',
+        city: userData.city || '[YOUR CITY]',
+        state: userData.state || '[YOUR STATE]',
+        zip: userData.zip || '[YOUR ZIP]',
+        phone: userData.phone || '[YOUR PHONE]',
+        email: userData.email || '[YOUR EMAIL]',
+        ssn_last_four: userData.ssnLastFour || '[LAST 4 SSN DIGITS]',
+      };
+      
+      console.log(`Using user data in letter: ${userName} at ${userAddress}`);
+    }
     
     // Send request to OpenAI to generate letter
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -75,8 +102,14 @@ Reason for Dispute: ${item.recommendedReason || item.reason || "This information
             4. Request for updated credit report showing corrections
             5. Reminder of the 30-day investigation requirement
             
-            The letter should be from ${userData?.name || '[YOUR NAME]'} at ${userData?.address || '[YOUR ADDRESS]'}.
-            Make it formal, professional, and legally compliant with the FCRA.`
+            The letter should be from ${userName} at ${userAddress}.
+            Include the consumer's phone number: ${userInfo.phone || '[YOUR PHONE]'}
+            Include the consumer's email address: ${userInfo.email || '[YOUR EMAIL]'}
+            Include the last 4 digits of the consumer's SSN: ${userInfo.ssn_last_four || 'XXXX'}
+            
+            Make it formal, professional, and legally compliant with the FCRA.
+            
+            Note: The letter must mention that the consumer is including copies of their government-issued ID, Social Security card, and a recent utility bill to prove their identity.`
           }
         ],
         max_tokens: 2048
@@ -109,10 +142,15 @@ Reason for Dispute: ${item.recommendedReason || item.reason || "This information
       suggestions.push("Mention the 30-day investigation requirement");
     }
     
+    if (!letterContent.toLowerCase().includes("id") || !letterContent.toLowerCase().includes("social security") || !letterContent.toLowerCase().includes("utility bill")) {
+      suggestions.push("Mention that you're including copies of your ID, SSN card, and utility bill");
+    }
+    
     return new Response(JSON.stringify({
       content: letterContent,
       qualityScore,
-      suggestions
+      suggestions,
+      userData: userInfo
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

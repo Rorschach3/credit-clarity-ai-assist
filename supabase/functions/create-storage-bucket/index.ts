@@ -18,7 +18,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create a new bucket for credit reports if it doesn't exist
+    // Create dispute documents bucket if it doesn't exist
     const { data: existingBuckets, error: bucketListError } = await supabase
       .storage
       .listBuckets();
@@ -27,28 +27,27 @@ serve(async (req) => {
       throw bucketListError;
     }
 
-    const creditReportsBucketExists = existingBuckets?.some(
-      bucket => bucket.name === 'credit_reports'
+    const disputeDocumentsBucketExists = existingBuckets?.some(
+      bucket => bucket.name === 'dispute_documents'
     );
 
-    if (!creditReportsBucketExists) {
+    if (!disputeDocumentsBucketExists) {
       const { data, error } = await supabase
         .storage
-        .createBucket('credit_reports', {
+        .createBucket('dispute_documents', {
           public: false,
           fileSizeLimit: 10485760, // 10MB
-          allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png']
+          allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
         });
 
       if (error) throw error;
     }
 
     // Create RLS policies for the bucket
-    // Note: In a real implementation, we would use SQL to create proper RLS policies
-    // This example assumes the bucket creation via the API also sets up default policies
+    // This is already done in the SQL migration
 
     return new Response(
-      JSON.stringify({ message: "Credit reports bucket configured successfully" }),
+      JSON.stringify({ message: "Dispute documents bucket configured successfully" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

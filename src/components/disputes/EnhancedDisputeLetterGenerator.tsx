@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
 import { Progress } from "@/components/ui/progress";
 import { aiService, GeneratedLetter } from "@/utils/ai-service";
 import { DisputeLetterPreview } from "./DisputeLetterPreview";
+import { useAuth } from "@/App";
 
 interface EnhancedDisputeLetterGeneratorProps {
   items: NegativeItem[];
@@ -43,7 +45,9 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     'Equifax': []
   });
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [personalInfo, setPersonalInfo] = useState<any>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Get all bureaus represented in the selected items
   const bureaus = Array.from(new Set(
@@ -52,15 +56,43 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     bureau === 'Experian' || bureau === 'TransUnion' || bureau === 'Equifax'
   ) as Bureau[];
 
-  // Get user data (in a real implementation, this would come from the user profile)
-  const userData = {
-    name: '[YOUR NAME]',
-    address: '[YOUR ADDRESS]',
-    city: '[YOUR CITY]',
-    state: '[YOUR STATE]',
-    zip: '[YOUR ZIP]',
-    ssn: '[YOUR SSN]'
-  };
+  // Fetch user personal info from the database
+  useEffect(() => {
+    const fetchPersonalInfo = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("user_personal_info")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching personal info:", error);
+          return;
+        }
+
+        if (data) {
+          // Format user data for the letter generation
+          setPersonalInfo({
+            fullName: data.full_name,
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            zip: data.zip,
+            phone: data.phone || undefined,
+            email: data.email,
+            ssnLastFour: data.ssn_last_four || undefined
+          });
+        }
+      } catch (error) {
+        console.error("Error in fetching personal info:", error);
+      }
+    };
+
+    fetchPersonalInfo();
+  }, [user]);
 
   const generateLetter = async (bureau: Bureau) => {
     setIsGenerating(true);
@@ -73,7 +105,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
       setGenerationProgress(30);
       
       // Generate the letter content using AI
-      const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, userData);
+      const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, personalInfo);
       setGenerationProgress(70);
       
       // Update the letter and quality score
@@ -163,7 +195,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
             mailing_address: bureauAddresses[bureau],
             letter_content: letter,
             status: 'created',
-            user_id: TEMP_USER_ID
+            user_id: user?.id || TEMP_USER_ID
           })
           .select();
         
@@ -242,6 +274,16 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
                 )}
               </Button>
             </div>
+            
+            {!personalInfo && (
+              <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  We're using default personal information in your letter. For a more personalized letter, 
+                  please go back and complete your personal information.
+                </AlertDescription>
+              </Alert>
+            )}
             
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Bureau)} className="w-full">
               <TabsList className="grid" style={{ gridTemplateColumns: `repeat(${bureaus.length}, 1fr)` }}>

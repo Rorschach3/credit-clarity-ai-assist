@@ -6,17 +6,21 @@ import { EnhancedNegativeItemsList } from "@/components/disputes/EnhancedNegativ
 import { EnhancedDisputeLetterGenerator } from "@/components/disputes/EnhancedDisputeLetterGenerator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, FileText, FileCheck, MailOpen, Plus, Upload } from "lucide-react";
+import { Bot, FileText, FileCheck, MailOpen, Plus, Upload, UserCircle, FileArchive } from "lucide-react";
 import { DisputeAnalysis } from "@/utils/ai-service";
 import { ManualDisputeForm } from "@/components/disputes/ManualDisputeForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PersonalInfoForm } from "@/components/disputes/PersonalInfoForm";
+import { UserDocumentsSection } from "@/components/disputes/UserDocumentsSection";
+import { Progress } from "@/components/ui/progress";
 
 export default function DisputeGeneratorPage() {
-  const [step, setStep] = useState<'scan' | 'select' | 'generate' | 'complete'>('scan');
+  const [step, setStep] = useState<'personal' | 'scan' | 'select' | 'documents' | 'generate' | 'complete'>('personal');
   const [negativeItems, setNegativeItems] = useState<NegativeItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<NegativeItem[]>([]);
   const [disputeAnalysis, setDisputeAnalysis] = useState<DisputeAnalysis | null>(null);
   const [entryMethod, setEntryMethod] = useState<'scan' | 'manual'>('scan');
+  const [personalInfo, setPersonalInfo] = useState<any>(null);
   const { toast } = useToast();
 
   const handleScanComplete = (items: NegativeItem[], analysis?: DisputeAnalysis) => {
@@ -37,6 +41,10 @@ export default function DisputeGeneratorPage() {
 
   const handleGenerateDisputes = (items: NegativeItem[]) => {
     setSelectedItems(items);
+    setStep('documents');
+  };
+
+  const handleDocumentsComplete = () => {
     setStep('generate');
   };
 
@@ -61,26 +69,41 @@ export default function DisputeGeneratorPage() {
     }
   };
 
-  const resetProcess = () => {
+  const handlePersonalInfoComplete = () => {
     setStep('scan');
+  };
+
+  const resetProcess = () => {
+    setStep('personal');
     setNegativeItems([]);
     setSelectedItems([]);
     setDisputeAnalysis(null);
+  };
+
+  // Calculate progress percentage
+  const getProgressPercentage = () => {
+    const steps = ['personal', 'scan', 'select', 'documents', 'generate', 'complete'];
+    const currentIndex = steps.indexOf(step);
+    return ((currentIndex) / (steps.length - 1)) * 100;
   };
 
   // Helper function to get the step icon
   const getStepIcon = (currentStep: string, thisStep: string) => {
     if (currentStep === thisStep) {
       return <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">{
+        thisStep === 'personal' ? <UserCircle className="h-5 w-5" /> :
         thisStep === 'scan' ? <FileText className="h-5 w-5" /> :
         thisStep === 'select' ? <Bot className="h-5 w-5" /> :
+        thisStep === 'documents' ? <FileArchive className="h-5 w-5" /> :
         thisStep === 'generate' ? <FileCheck className="h-5 w-5" /> :
         <MailOpen className="h-5 w-5" />
       }</div>;
     }
     return <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">{
+      thisStep === 'personal' ? <UserCircle className="h-5 w-5" /> :
       thisStep === 'scan' ? <FileText className="h-5 w-5" /> :
       thisStep === 'select' ? <Bot className="h-5 w-5" /> :
+      thisStep === 'documents' ? <FileArchive className="h-5 w-5" /> :
       thisStep === 'generate' ? <FileCheck className="h-5 w-5" /> :
       <MailOpen className="h-5 w-5" />
     }</div>;
@@ -89,45 +112,72 @@ export default function DisputeGeneratorPage() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-2">AI-Powered Credit Report Dispute Assistant</h1>
-      <p className="text-muted-foreground mb-8">
+      <p className="text-muted-foreground mb-4">
         Upload your credit report or manually enter account details, our AI will help generate customized dispute letters
       </p>
       
-      <div className="flex items-center justify-center mb-10">
-        <div className="flex items-center">
+      {/* Progress indicator */}
+      <div className="mb-2 flex justify-between items-center">
+        <span className="text-sm font-medium">Progress</span>
+        <span className="text-sm text-muted-foreground">{Math.round(getProgressPercentage())}%</span>
+      </div>
+      <Progress value={getProgressPercentage()} className="mb-8" />
+      
+      <div className="flex items-center justify-center mb-10 overflow-x-auto">
+        <div className="flex items-center min-w-max">
+          {getStepIcon(step, 'personal')}
+          <div className="ml-2 mr-6">
+            <p className={`font-medium ${step === 'personal' ? 'text-primary' : ''}`}>Personal Info</p>
+            <p className="text-xs text-muted-foreground">Your details</p>
+          </div>
+        </div>
+        <div className="w-16 h-[2px] bg-muted"></div>
+        <div className="flex items-center min-w-max">
           {getStepIcon(step, 'scan')}
           <div className="ml-2 mr-6">
             <p className={`font-medium ${step === 'scan' ? 'text-primary' : ''}`}>Add Data</p>
-            <p className="text-xs text-muted-foreground">Upload or enter manually</p>
+            <p className="text-xs text-muted-foreground">Upload or enter</p>
           </div>
         </div>
         <div className="w-16 h-[2px] bg-muted"></div>
-        <div className="flex items-center">
+        <div className="flex items-center min-w-max">
           {getStepIcon(step, 'select')}
           <div className="ml-2 mr-6">
             <p className={`font-medium ${step === 'select' ? 'text-primary' : ''}`}>Select Items</p>
-            <p className="text-xs text-muted-foreground">Choose accounts to dispute</p>
+            <p className="text-xs text-muted-foreground">Choose accounts</p>
           </div>
         </div>
         <div className="w-16 h-[2px] bg-muted"></div>
-        <div className="flex items-center">
+        <div className="flex items-center min-w-max">
+          {getStepIcon(step, 'documents')}
+          <div className="ml-2 mr-6">
+            <p className={`font-medium ${step === 'documents' ? 'text-primary' : ''}`}>Identity Docs</p>
+            <p className="text-xs text-muted-foreground">Upload ID & SSN</p>
+          </div>
+        </div>
+        <div className="w-16 h-[2px] bg-muted"></div>
+        <div className="flex items-center min-w-max">
           {getStepIcon(step, 'generate')}
           <div className="ml-2 mr-6">
-            <p className={`font-medium ${step === 'generate' ? 'text-primary' : ''}`}>Generate Letters</p>
+            <p className={`font-medium ${step === 'generate' ? 'text-primary' : ''}`}>Letters</p>
             <p className="text-xs text-muted-foreground">Review & save</p>
           </div>
         </div>
         <div className="w-16 h-[2px] bg-muted"></div>
-        <div className="flex items-center">
+        <div className="flex items-center min-w-max">
           {getStepIcon(step, 'complete')}
           <div className="ml-2">
             <p className={`font-medium ${step === 'complete' ? 'text-primary' : ''}`}>Complete</p>
-            <p className="text-xs text-muted-foreground">Process finished</p>
+            <p className="text-xs text-muted-foreground">Finished</p>
           </div>
         </div>
       </div>
       
       <div className="grid grid-cols-1 gap-8">
+        {step === 'personal' && (
+          <PersonalInfoForm onComplete={handlePersonalInfoComplete} />
+        )}
+        
         {step === 'scan' && (
           <Tabs defaultValue={entryMethod} onValueChange={(value) => setEntryMethod(value as 'scan' | 'manual')} className="w-full">
             <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
@@ -178,13 +228,23 @@ export default function DisputeGeneratorPage() {
           </>
         )}
         
+        {step === 'documents' && (
+          <UserDocumentsSection onComplete={handleDocumentsComplete} />
+        )}
+        
         {step === 'generate' && (
           <>
             <EnhancedDisputeLetterGenerator 
               items={selectedItems}
               onComplete={handleDisputesComplete}
             />
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep('documents')}
+              >
+                Back to Documents
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setStep('select')}

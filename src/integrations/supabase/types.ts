@@ -108,6 +108,87 @@ export type Database = {
         }
         Relationships: []
       }
+      user_documents: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          id: string
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      user_personal_info: {
+        Row: {
+          address: string
+          city: string
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          ssn_last_four: string | null
+          state: string
+          updated_at: string | null
+          user_id: string
+          zip: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          ssn_last_four?: string | null
+          state: string
+          updated_at?: string | null
+          user_id: string
+          zip: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          ssn_last_four?: string | null
+          state?: string
+          updated_at?: string | null
+          user_id?: string
+          zip?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
