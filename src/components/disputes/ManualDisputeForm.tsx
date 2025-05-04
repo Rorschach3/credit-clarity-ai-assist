@@ -76,8 +76,8 @@ export function ManualDisputeForm({ onItemCreated }: ManualDisputeFormProps) {
         bureaus: values.bureaus as any,
         reason: values.reason || "Information is inaccurate",
         status: "Active",
-        score: 85, // Default score for AI recommendation
-        recommendedReason: "Dispute based on inaccurate information",
+        // Remove properties that aren't in the NegativeItem type
+        // score and recommendedReason were removed
       };
       
       onItemCreated(newItem);
