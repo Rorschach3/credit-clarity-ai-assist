@@ -9,7 +9,7 @@ import type { NegativeItem } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/schema";
-import { Loader2, Save, Bot, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Save, Bot, CheckCircle, RefreshCw, AlertCircle, Info } from "lucide-react";
 import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
 import { Progress } from "@/components/ui/progress";
 import { aiService, GeneratedLetter } from "@/utils/ai-service";
@@ -276,7 +276,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
             </div>
             
             {!personalInfo && (
-              <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
+              <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   We're using default personal information in your letter. For a more personalized letter, 

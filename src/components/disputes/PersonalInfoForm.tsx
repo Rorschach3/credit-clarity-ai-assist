@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -130,7 +129,7 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
         phone: values.phone,
         email: values.email,
         ssn_last_four: values.ssnLastFour,
-        updated_at: new Date(),
+        updated_at: new Date().toISOString() // Convert Date to string
       };
 
       let operation;
@@ -144,7 +143,7 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
         // Insert new record
         operation = supabase
           .from("user_personal_info")
-          .insert([personalInfo]);
+          .insert([personalInfo]); // Pass as array for insert operation
       }
 
       const { error } = await operation;
