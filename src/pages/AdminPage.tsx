@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -12,6 +13,7 @@ interface User {
   email: string
   subscription_tier?: string
   active?: boolean
+  is_admin?: boolean
 }
 
 export default function AdminPage() {
@@ -30,47 +32,109 @@ export default function AdminPage() {
   }, [activeTab])
 
   async function fetchDisputes() {
+    console.log("Fetching disputes...")
     setIsLoading(true)
-    const { data, error } = await supabase
-      .from(Tables.disputes)
-      .select('*')
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from(Tables.disputes)
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    if (error) {
+      if (error) {
+        console.error("Error fetching disputes:", error)
+        toast({
+          title: "Error",
+          description: `Failed to fetch disputes: ${error.message}`,
+          variant: "destructive",
+        })
+      } else {
+        console.log("Disputes fetched:", data)
+        setDisputes(data || [])
+      }
+    } catch (e) {
+      console.error("Exception in fetchDisputes:", e)
       toast({
         title: "Error",
-        description: "Failed to fetch disputes",
+        description: "An unexpected error occurred when fetching disputes",
         variant: "destructive",
       })
-    } else {
-      setDisputes(data || [])
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   async function fetchUsers() {
+    console.log("Fetching users...")
     setIsLoading(true)
-    // Get users from auth.users via RPC or other secure method
-    // For this example, we'll use the subscribers table which contains user info
-    const { data, error } = await supabase
-      .from(Tables.subscribers)
-      .select('user_id, email, subscription_tier, subscribed')
+    try {
+      // First fetch subscribers to get user info
+      const { data: subscribersData, error: subscribersError } = await supabase
+        .from(Tables.subscribers)
+        .select('user_id, email, subscription_tier, subscribed')
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive",
-      })
-    } else {
-      setUsers(data?.map(sub => ({
+      if (subscribersError) {
+        console.error("Error fetching subscribers:", subscribersError)
+        toast({
+          title: "Error",
+          description: `Failed to fetch users: ${subscribersError.message}`,
+          variant: "destructive",
+        })
+        setUsers([])
+        return
+      }
+
+      console.log("Subscribers data:", subscribersData)
+      
+      // Convert subscribers to user format
+      const usersFromSubscribers = subscribersData.map(sub => ({
         id: sub.user_id || '',
         email: sub.email || '',
         subscription_tier: sub.subscription_tier,
         active: sub.subscribed
-      })) || [])
+      })) || []
+
+      // Now let's check which users are admins
+      if (usersFromSubscribers.length > 0) {
+        // Fetch admin roles for these users
+        const { data: rolesData, error: rolesError } = await supabase
+          .from(Tables.user_roles)
+          .select('user_id, role')
+          .eq('role', 'admin')
+
+        if (rolesError) {
+          console.error("Error fetching roles:", rolesError)
+        } else {
+          console.log("Roles data:", rolesData)
+          
+          // Create a map of user_id to admin status
+          const adminMap = new Map()
+          if (rolesData) {
+            rolesData.forEach(role => {
+              adminMap.set(role.user_id, true)
+            })
+          }
+
+          // Update users with admin status
+          const usersWithAdminStatus = usersFromSubscribers.map(user => ({
+            ...user,
+            is_admin: adminMap.has(user.id)
+          }))
+
+          setUsers(usersWithAdminStatus)
+        }
+      } else {
+        setUsers(usersFromSubscribers)
+      }
+    } catch (e) {
+      console.error("Exception in fetchUsers:", e)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred when fetching users",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   return (

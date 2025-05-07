@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -13,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Printer } from "lucide-react"
+import { Printer, Loader2, FileText, TruckIcon } from "lucide-react"
 
 interface DisputeManagementProps {
   isLoading: boolean
@@ -23,24 +24,46 @@ interface DisputeManagementProps {
 
 export function DisputeManagement({ isLoading, disputes, fetchDisputes }: DisputeManagementProps) {
   const { toast } = useToast()
+  const [processingDisputes, setProcessingDisputes] = useState<{[key: string]: boolean}>({})
 
   async function generateShippingLabel(dispute: Dispute) {
     try {
+      setProcessingDisputes(prev => ({ ...prev, [dispute.id]: true }))
+      console.log("Generating shipping label for dispute:", dispute)
+      
+      // Make sure the dispute has a mailing address
+      if (!dispute.mailing_address) {
+        throw new Error("Dispute has no mailing address")
+      }
+      
+      // Parse address parts from mailing_address
+      const addressLines = dispute.mailing_address.split('\n')
+      const cityStateZip = addressLines.length > 1 ? addressLines[1].split(',') : ['', '']
+      const city = cityStateZip[0].trim()
+      const stateZip = cityStateZip.length > 1 ? cityStateZip[1].trim().split(' ') : ['', '']
+      const state = stateZip[0]
+      const zip = stateZip.length > 1 ? stateZip[1] : ''
+      
       const response = await supabase.functions.invoke('generate-shipping-label', {
         body: {
           disputeId: dispute.id,
           toAddress: {
             name: dispute.credit_bureau,
-            street1: dispute.mailing_address.split('\n')[0],
-            city: dispute.mailing_address.split('\n')[1].split(',')[0],
-            state: dispute.mailing_address.split('\n')[1].split(',')[1].trim().split(' ')[0],
-            zip: dispute.mailing_address.split('\n')[1].split(',')[1].trim().split(' ')[1],
+            street1: addressLines[0],
+            city: city,
+            state: state,
+            zip: zip,
             country: 'US'
           }
         }
       })
 
-      if (response.error) throw new Error(response.error.message)
+      if (response.error) {
+        console.error("Error from generate-shipping-label function:", response.error)
+        throw new Error(response.error.message)
+      }
+      
+      console.log("Response from generate-shipping-label:", response)
 
       // Update dispute with shipping label URL and tracking number
       const { error: updateError } = await supabase
@@ -52,7 +75,10 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         })
         .eq('id', dispute.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error("Error updating dispute with shipping info:", updateError)
+        throw updateError
+      }
 
       toast({
         title: "Success",
@@ -62,16 +88,21 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
       // Refresh disputes list
       fetchDisputes()
     } catch (error: any) {
+      console.error("Error in generateShippingLabel:", error)
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to generate shipping label",
         variant: "destructive",
       })
+    } finally {
+      setProcessingDisputes(prev => ({ ...prev, [dispute.id]: false }))
     }
   }
 
   async function markDisputeAsSent(dispute: Dispute) {
     try {
+      setProcessingDisputes(prev => ({ ...prev, [dispute.id]: true }))
+      
       const { error } = await supabase
         .from(Tables.disputes)
         .update({
@@ -79,7 +110,10 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         })
         .eq('id', dispute.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error updating dispute status:", error)
+        throw error
+      }
 
       toast({
         title: "Success",
@@ -88,23 +122,26 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
 
       // Refresh disputes list
       fetchDisputes()
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error in markDisputeAsSent:", error)
       toast({
         title: "Error",
-        description: "Failed to update dispute status",
+        description: `Failed to update dispute status: ${error.message}`,
         variant: "destructive",
       })
+    } finally {
+      setProcessingDisputes(prev => ({ ...prev, [dispute.id]: false }))
     }
   }
 
   function getStatusBadge(status: string) {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline">Pending</Badge>
+        return <Badge variant="outline" className="flex items-center gap-1"><FileText className="h-3 w-3" /> Pending</Badge>
       case 'label_generated':
-        return <Badge variant="secondary">Label Generated</Badge>
+        return <Badge variant="secondary" className="flex items-center gap-1"><Printer className="h-3 w-3" /> Label Generated</Badge>
       case 'sent':
-        return <Badge className="bg-green-500 text-white">Sent</Badge>
+        return <Badge className="bg-green-500 text-white flex items-center gap-1"><TruckIcon className="h-3 w-3" /> Sent</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -131,17 +168,33 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">Loading disputes...</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Loading disputes...
+                    </div>
+                  </TableCell>
                 </TableRow>
               ) : disputes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">No disputes found</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    No disputes found.
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      User-generated disputes will appear here.
+                    </div>
+                  </TableCell>
                 </TableRow>
               ) : (
                 disputes.map((dispute) => (
                   <TableRow key={dispute.id}>
                     <TableCell>{dispute.credit_bureau}</TableCell>
-                    <TableCell>{dispute.mailing_address}</TableCell>
+                    <TableCell>
+                      <div className="max-h-20 overflow-y-auto">
+                        {dispute.mailing_address.split('\n').map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>{getStatusBadge(dispute.status)}</TableCell>
                     <TableCell>{new Date(dispute.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
@@ -150,8 +203,13 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
                           onClick={() => generateShippingLabel(dispute)}
                           size="sm"
                           className="flex items-center gap-2"
+                          disabled={processingDisputes[dispute.id]}
                         >
-                          <Printer className="h-4 w-4" />
+                          {processingDisputes[dispute.id] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="h-4 w-4" />
+                          )}
                           Generate Label
                         </Button>
                       ) : dispute.status === 'label_generated' ? (
@@ -174,7 +232,13 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
                             size="sm"
                             variant="outline"
                             className="mt-2"
+                            disabled={processingDisputes[dispute.id]}
                           >
+                            {processingDisputes[dispute.id] ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <TruckIcon className="h-4 w-4 mr-2" />
+                            )}
                             Mark as Sent
                           </Button>
                         </div>
