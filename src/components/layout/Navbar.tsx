@@ -25,14 +25,21 @@ export default function Navbar() {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-        
-        setIsAdmin(!!data);
+        try {
+          const { data, error } = await supabase.functions.invoke('check-admin-status', {
+            body: { userId: user.id }
+          });
+          
+          if (error) {
+            console.error("Error checking admin status:", error);
+            setIsAdmin(false);
+          } else {
+            setIsAdmin(data?.isAdmin || false);
+          }
+        } catch (error) {
+          console.error("Failed to check admin status:", error);
+          setIsAdmin(false);
+        }
       }
     };
 
