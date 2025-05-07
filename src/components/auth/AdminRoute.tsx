@@ -3,7 +3,6 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/App";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/schema";
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -23,19 +22,16 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       }
 
       try {
-        // Check if user has admin role
-        const { data, error } = await supabase
-          .from(Tables.user_roles)
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
+        // Call the edge function to check admin status
+        const { data, error } = await supabase.functions.invoke('check-admin-status', {
+          body: { userId: user.id }
+        });
         
         if (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
         } else {
-          setIsAdmin(!!data);
+          setIsAdmin(data?.isAdmin || false);
         }
       } catch (error) {
         console.error("Admin check failed:", error);
