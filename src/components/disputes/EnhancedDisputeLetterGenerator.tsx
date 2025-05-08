@@ -19,12 +19,13 @@ import { useAuth } from "@/App";
 interface EnhancedDisputeLetterGeneratorProps {
   items: NegativeItem[];
   onComplete: () => void;
+  personalInfo?: any;
 }
 
 // Temporary default user ID until authentication is implemented
 const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
 
-export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDisputeLetterGeneratorProps) {
+export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo: propPersonalInfo }: EnhancedDisputeLetterGeneratorProps) {
   const [activeTab, setActiveTab] = useState<Bureau>('Experian');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,7 +46,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     'Equifax': []
   });
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [personalInfo, setPersonalInfo] = useState<any>(null);
+  const [personalInfo, setPersonalInfo] = useState<any>(propPersonalInfo);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -56,8 +57,13 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     bureau === 'Experian' || bureau === 'TransUnion' || bureau === 'Equifax'
   ) as Bureau[];
 
-  // Fetch user personal info from the database
+  // Use provided personal info or fetch from database
   useEffect(() => {
+    if (propPersonalInfo) {
+      setPersonalInfo(propPersonalInfo);
+      return;
+    }
+    
     const fetchPersonalInfo = async () => {
       if (!user) return;
 
@@ -92,7 +98,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     };
 
     fetchPersonalInfo();
-  }, [user]);
+  }, [user, propPersonalInfo]);
 
   const generateLetter = async (bureau: Bureau) => {
     setIsGenerating(true);
@@ -104,25 +110,53 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
       
       setGenerationProgress(30);
       
-      // Generate the letter content using AI
-      const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, personalInfo);
-      setGenerationProgress(70);
-      
-      // Update the letter and quality score
-      setLetters(prev => ({
-        ...prev,
-        [bureau]: generatedLetter.content
-      }));
+      // For testing, fallback to defaultLetter if AI service fails
+      try {
+        // Generate the letter content using AI
+        const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, personalInfo);
+        setGenerationProgress(70);
+        
+        // Update the letter and quality score
+        setLetters(prev => ({
+          ...prev,
+          [bureau]: generatedLetter.content
+        }));
 
-      setLetterQuality(prev => ({
-        ...prev,
-        [bureau]: generatedLetter.qualityScore
-      }));
+        setLetterQuality(prev => ({
+          ...prev,
+          [bureau]: generatedLetter.qualityScore
+        }));
 
-      setLetterSuggestions(prev => ({
-        ...prev,
-        [bureau]: generatedLetter.suggestions
-      }));
+        setLetterSuggestions(prev => ({
+          ...prev,
+          [bureau]: generatedLetter.suggestions
+        }));
+      } catch (error) {
+        console.error("AI letter generation failed, using fallback:", error);
+        
+        // Fallback to template if AI fails
+        const fallbackLetter = generateFallbackLetter(bureauItems, bureau);
+        setLetters(prev => ({
+          ...prev,
+          [bureau]: fallbackLetter
+        }));
+        
+        setLetterQuality(prev => ({
+          ...prev,
+          [bureau]: 75
+        }));
+        
+        setLetterSuggestions(prev => ({
+          ...prev,
+          [bureau]: ["Consider adding more specific dispute reasons"]
+        }));
+        
+        toast({
+          title: "AI Generation Unavailable",
+          description: "Using template letter instead. You can edit it as needed.",
+          variant: "default"
+        });
+      }
       
       setGenerationProgress(100);
       toast({
@@ -141,28 +175,86 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
     }
   };
 
+  const generateFallbackLetter = (bureauItems: NegativeItem[], bureau: Bureau): string => {
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const userInfo = personalInfo || {};
+    
+    const fullName = userInfo.fullName || '[YOUR NAME]';
+    const address = userInfo.address || '[YOUR ADDRESS]';
+    const city = userInfo.city || '[YOUR CITY]';
+    const state = userInfo.state || '[YOUR STATE]';
+    const zip = userInfo.zip || '[YOUR ZIP]';
+    const ssnLastFour = userInfo.ssnLastFour || '[LAST 4 SSN DIGITS]';
+    
+    const fullAddress = `${address}, ${city}, ${state} ${zip}`;
+
+    return `${currentDate}
+
+${bureauAddresses[bureau]}
+
+Re: Request for Investigation of Items on Credit Report
+
+To Whom It May Concern:
+
+I am writing to dispute the following information in my credit report. The items I dispute are marked by an "X" below.
+
+${bureauItems.map((item, index) => `
+X Item ${index + 1}: ${item.creditorName}
+Account Number: ${item.accountNumber}
+Reason for Dispute: This information is inaccurate because I do not recognize this account. Please investigate this matter and remove the inaccurate information from my credit report.
+`).join('\n')}
+
+Under the Fair Credit Reporting Act, Section 611, you are required to investigate these disputes and provide me with the results of your investigation within 30 days. If you cannot verify these items, they must be removed from my credit report.
+
+I am including copies of my government-issued ID, Social Security card, and a recent utility bill to verify my identity as required.
+
+Please send me notification of the results of your investigation.
+
+Sincerely,
+
+${fullName}
+${fullAddress}
+Phone: ${userInfo.phone || '[YOUR PHONE]'}
+Email: ${userInfo.email || '[YOUR EMAIL]'}
+Last 4 SSN: ${ssnLastFour}`;
+  };
+
   const reviewLetter = async (bureau: Bureau) => {
     if (!letters[bureau]) return;
     
     setIsReviewing(true);
     
     try {
-      const reviewedLetter = await aiService.reviewDisputeLetter(letters[bureau]!, bureau);
-      
-      setLetters(prev => ({
-        ...prev,
-        [bureau]: reviewedLetter.content
-      }));
-      
-      setLetterQuality(prev => ({
-        ...prev,
-        [bureau]: reviewedLetter.qualityScore
-      }));
-      
-      setLetterSuggestions(prev => ({
-        ...prev,
-        [bureau]: reviewedLetter.suggestions
-      }));
+      try {
+        const reviewedLetter = await aiService.reviewDisputeLetter(letters[bureau]!, bureau);
+        
+        setLetters(prev => ({
+          ...prev,
+          [bureau]: reviewedLetter.content
+        }));
+        
+        setLetterQuality(prev => ({
+          ...prev,
+          [bureau]: reviewedLetter.qualityScore
+        }));
+        
+        setLetterSuggestions(prev => ({
+          ...prev,
+          [bureau]: reviewedLetter.suggestions
+        }));
+      } catch (error) {
+        console.error("AI letter review failed:", error);
+        toast({
+          title: "Review Failed",
+          description: "AI review unavailable. You can still edit the letter manually.",
+          variant: "default"
+        });
+      }
       
       toast({
         title: "Letter Review Complete",
@@ -194,7 +286,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
             credit_bureau: bureau,
             mailing_address: bureauAddresses[bureau],
             letter_content: letter,
-            status: 'created',
+            status: 'pending',
             user_id: user?.id || TEMP_USER_ID
           })
           .select();
@@ -207,7 +299,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
       
       toast({
         title: "Disputes Saved",
-        description: "Your AI-optimized dispute letters have been saved successfully.",
+        description: "Your dispute letters have been saved successfully.",
       });
       
       onComplete();
@@ -242,7 +334,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
               </Badge>
             </CardTitle>
             <CardDescription>
-              Review and customize your AI-generated dispute letters for each credit bureau
+              Review and customize your dispute letters for each credit bureau
             </CardDescription>
           </div>
         </div>
@@ -303,13 +395,13 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
                 <TabsContent key={bureau} value={bureau} className="space-y-4">
                   {!letters[bureau] ? (
                     <div className="text-center py-8">
-                      {isGenerating ? (
+                      {isGenerating && activeTab === bureau ? (
                         <div className="space-y-4">
                           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                           <div>
                             <p className="font-medium">Generating your dispute letter</p>
                             <p className="text-sm text-muted-foreground">
-                              Our AI is crafting a personalized letter for {bureau}
+                              Creating a personalized letter for {bureau}
                             </p>
                           </div>
                           <Progress value={generationProgress} className="w-64 mx-auto" />
@@ -321,7 +413,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete }: EnhancedDi
                             Generate {bureau} Letter
                           </Button>
                           <p className="mt-2 text-sm text-muted-foreground">
-                            Click to create an AI-optimized dispute letter
+                            Click to create an optimized dispute letter
                           </p>
                         </>
                       )}

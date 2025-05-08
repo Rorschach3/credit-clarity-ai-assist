@@ -6,13 +6,14 @@ import { EnhancedNegativeItemsList } from "@/components/disputes/EnhancedNegativ
 import { EnhancedDisputeLetterGenerator } from "@/components/disputes/EnhancedDisputeLetterGenerator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, FileText, FileCheck, MailOpen, Plus, Upload, UserCircle, FileArchive } from "lucide-react";
+import { Bot, FileText, FileCheck, MailOpen, Plus, Upload, UserCircle, FileArchive, AlertCircle } from "lucide-react";
 import { DisputeAnalysis } from "@/utils/ai-service";
 import { ManualDisputeForm } from "@/components/disputes/ManualDisputeForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonalInfoForm } from "@/components/disputes/PersonalInfoForm";
 import { UserDocumentsSection } from "@/components/disputes/UserDocumentsSection";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function DisputeGeneratorPage() {
   const [step, setStep] = useState<'personal' | 'scan' | 'select' | 'documents' | 'generate' | 'complete'>('personal');
@@ -69,7 +70,8 @@ export default function DisputeGeneratorPage() {
     }
   };
 
-  const handlePersonalInfoComplete = () => {
+  const handlePersonalInfoComplete = (info: any) => {
+    setPersonalInfo(info);
     setStep('scan');
   };
 
@@ -78,6 +80,14 @@ export default function DisputeGeneratorPage() {
     setNegativeItems([]);
     setSelectedItems([]);
     setDisputeAnalysis(null);
+  };
+
+  const skipDocumentsStep = () => {
+    toast({
+      title: "Documents Skipped",
+      description: "You've chosen to skip the identity document submission step.",
+    });
+    setStep('generate');
   };
 
   // Calculate progress percentage
@@ -229,7 +239,25 @@ export default function DisputeGeneratorPage() {
         )}
         
         {step === 'documents' && (
-          <UserDocumentsSection onComplete={handleDocumentsComplete} />
+          <>
+            <UserDocumentsSection onComplete={handleDocumentsComplete} />
+            
+            <Alert className="mt-6 bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                Documents help verify your identity with credit bureaus, but you can continue without them if needed.
+                <div className="mt-4">
+                  <Button 
+                    variant="outline"
+                    onClick={skipDocumentsStep}
+                    className="bg-white hover:bg-blue-50"
+                  >
+                    Skip Documents & Continue to Letters
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </>
         )}
         
         {step === 'generate' && (
@@ -237,6 +265,7 @@ export default function DisputeGeneratorPage() {
             <EnhancedDisputeLetterGenerator 
               items={selectedItems}
               onComplete={handleDisputesComplete}
+              personalInfo={personalInfo}
             />
             <div className="mt-4 flex gap-2">
               <Button 
