@@ -77,7 +77,7 @@ Reason for Dispute: ${item.recommendedReason || item.reason || "This information
         'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo", // Updated from gpt-4o-mini to a more widely available model
         messages: [
           {
             role: "system",
