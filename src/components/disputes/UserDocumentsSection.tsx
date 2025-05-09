@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Info, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 
 interface UserDocumentsSectionProps {
   onComplete?: () => void;

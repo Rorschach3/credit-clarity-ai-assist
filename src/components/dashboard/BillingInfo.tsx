@@ -5,7 +5,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/com
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 
 export function BillingInfo() {
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);

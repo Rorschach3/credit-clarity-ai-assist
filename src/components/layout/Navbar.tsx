@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useTheme } from "@/hooks/use-theme";
-import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "next-themes";import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

@@ -12,7 +12,7 @@
 
 <div align="center">
 
-**🔗 Table of Contents**
+** Table of Contents**
 
 1. [Overview](#overview)
 2. [Navigation & Pages](#navigation--pages)
@@ -38,9 +38,9 @@ Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> use
 </p>
 
 <ul>
-  <li>🔍 Identify credit‐report errors with high accuracy</li>
-  <li>✉️ Generate customized, FCRA-compliant dispute letters</li>
-  <li>⚙️ Automate the credit-repair workflow</li>
+  <li> Identify credit‐report errors with high accuracy</li>
+  <li> Generate customized, FCRA-compliant dispute letters</li>
+  <li> Automate the credit-repair workflow</li>
 </ul>
 
 ---
@@ -83,10 +83,10 @@ Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> use
 
 ## <span style="color: #D35400;">Features</span>
 
-* 🛠️ <strong>Dispute Generator</strong>: Upload or enter report, AI drafts letters.
-* 📄 <strong>OCR Integration</strong>: Scan PDFs & images for errors.
-* ✍️ <strong>Custom Templates</strong>: Review & edit letters pre-send.
-* 📊 <strong>Progress Dashboard</strong>: Track submissions, responses, score changes.
+-  <strong>Dispute Generator</strong>: Upload or enter report, AI drafts letters.
+-  <strong>OCR Integration</strong>: Scan PDFs & images for errors.
+-  <strong>Custom Templates</strong>: Review & edit letters pre-send.
+-  <strong>Progress Dashboard</strong>: Track submissions, responses, score changes.
 
 ---
 
@@ -205,8 +205,3 @@ For full FAQs, see [`faq.html`](app/templates/faq.html).
 <p align="center">
 © 2025 CreditClarityAI &nbsp;|&nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp;|&nbsp; <a href="terms.html">Terms of Service</a>
 </p>
-
-Follow us:
-[![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=flat\&logo=twitter\&logoColor=white)](https://twitter.com/creditclarityai)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat\&logo=linkedin\&logoColor=white)](https://linkedin.com/company/creditclarityai)
-[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat\&logo=facebook\&logoColor=white)](https://facebook.com/creditclarityai)

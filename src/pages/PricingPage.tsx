@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 
 export default function PricingPage() {

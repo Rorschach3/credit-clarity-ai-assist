@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 import { SubscriberWithFeatures } from "@/integrations/supabase/schema";
 
 interface SubscriptionPromptProps {
