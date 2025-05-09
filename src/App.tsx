@@ -5,17 +5,18 @@ import {
 } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider"
 import { useAuth } from "@/hooks/use-auth";
-import { Index } from "@/pages/Index";
-import { LoginPage } from "@/pages/LoginPage";
-import { SignupPage } from "@/pages/SignupPage";
-import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
-import { AboutPage } from "@/pages/AboutPage";
-import { ContactPage } from "@/pages/ContactPage";
-import { FaqPage } from "@/pages/FaqPage";
-import { PricingPage } from "@/pages/PricingPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { AdminRoute } from "@/components/auth/AdminRoute";
+import Index from "@/pages/Index";
+import HomePage from "@/pages/HomePage";
+import LoginPage from "@/pages/LoginPage";
+import SignupPage from "@/pages/SignupPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import FaqPage from "@/pages/FaqPage";
+import PricingPage from "@/pages/PricingPage";
+import NotFoundPage from "@/pages/NotFoundPage";
+import AdminRoute from "@/components/auth/AdminRoute";
 import PlaceholderDashboard from "@/pages/PlaceholderDashboard";
 import AdminPage from "@/pages/AdminPage";
 import DisputeGeneratorPage from "@/pages/DisputeGeneratorPage";
@@ -38,7 +39,7 @@ function App() {
     >
       <Router>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

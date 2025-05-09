@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save } from "lucide-react";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 
 // Form schema with validation
 const personalInfoSchema = z.object({

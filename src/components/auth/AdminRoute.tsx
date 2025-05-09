@@ -1,6 +1,6 @@
 
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,7 +9,7 @@ interface AdminRouteProps {
 }
 
 const AdminRoute = ({ children }: AdminRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
 
@@ -41,12 +41,12 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       }
     };
 
-    if (!loading) {
+    if (user) {
       checkAdminStatus();
     }
-  }, [user, loading]);
+  }, [user]);
 
-  if (loading || checkingRole) {
+  if (checkingRole) {
     return <div className="flex items-center justify-center min-h-screen">Checking permissions...</div>;
   }
 

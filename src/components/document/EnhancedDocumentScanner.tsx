@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, FileText, CheckCircle2, AlertCircle, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/use-auth";
 import { FileUploadZone } from "./FileUploadZone";
 import { ScanStatus } from "./ScanStatus";
 import { SubscriptionPrompt } from "./SubscriptionPrompt";
