@@ -70,6 +70,7 @@ export default function DisputeGeneratorPage() {
     }
   };
 
+  // Fix: Change this function to accept the info parameter and store it
   const handlePersonalInfoComplete = (info: any) => {
     setPersonalInfo(info);
     setStep('scan');
