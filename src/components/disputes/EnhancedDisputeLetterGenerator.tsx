@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +8,7 @@ import type { NegativeItem } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/schema";
-// import { Loader2, Save, Bot, CheckCircle, RefreshCw, AlertCircle, Info } from "lucide-react";
+import { Loader2, Save, Bot, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
 import { Progress } from "@/components/ui/progress";
 import { aiService, GeneratedLetter } from "@/utils/ai-service";
@@ -353,12 +351,12 @@ Last 4 SSN: ${ssnLastFour}`;
               >
                 {isSaving ? (
                   <>
-                    {/* <Loader2 className="mr-2 h-4 w-4 animate-spin" /> */}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving
                   </>
                 ) : (
                   <>
-                    {/* <Save className="mr-2 h-4 w-4" /> */}
+                    <Save className="mr-2 h-4 w-4" />
                     Save All Dispute Letters
                   </>
                 )}
@@ -393,7 +391,7 @@ Last 4 SSN: ${ssnLastFour}`;
                     <div className="text-center py-8">
                       {isGenerating && activeTab === bureau ? (
                         <div className="space-y-4">
-                          {/* <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> */}
+                          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                           <div>
                             <p className="font-medium">Generating your dispute letter</p>
                             <p className="text-sm text-muted-foreground">
@@ -405,7 +403,7 @@ Last 4 SSN: ${ssnLastFour}`;
                       ) : (
                         <>
                           <Button onClick={() => generateLetter(bureau)}>
-                            {/* <Bot className="mr-2 h-4 w-4" /> */}
+                            <Bot className="mr-2 h-4 w-4" />
                             Generate {bureau} Letter
                           </Button>
                           <p className="mt-2 text-sm text-muted-foreground">
@@ -420,11 +418,11 @@ Last 4 SSN: ${ssnLastFour}`;
                         <div className="flex items-center gap-2 mb-3">
                           <div className={`px-2 py-1 rounded text-xs font-medium flex items-center ${getQualityColor(letterQuality[bureau])}`}>
                             {letterQuality[bureau] >= 90 ? (
-                              {/* <CheckCircle className="h-3 w-3 mr-1" /> */}
+                              <CheckCircle className="h-3 w-3 mr-1" />
                             ) : letterQuality[bureau] >= 75 ? (
-                              {/* <AlertCircle className="h-3 w-3 mr-1" /> */}
+                              <AlertCircle className="h-3 w-3 mr-1" />
                             ) : (
-                              {/* <AlertCircle className="h-3 w-3 mr-1" /> */}
+                              <AlertCircle className="h-3 w-3 mr-1" />
                             )}
                             Quality Score: {letterQuality[bureau]}%
                           </div>
@@ -437,9 +435,9 @@ Last 4 SSN: ${ssnLastFour}`;
                             disabled={isReviewing}
                           >
                             {isReviewing ? (
-                              {/* <Loader2 className="h-3 w-3 mr-1 animate-spin" /> */}
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                             ) : (
-                              {/* <RefreshCw className="h-3 w-3 mr-1" /> */}
+                              <RefreshCw className="h-3 w-3 mr-1" />
                             )}
                             Review & Improve
                           </Button>

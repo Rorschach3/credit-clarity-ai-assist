@@ -34,7 +34,7 @@ const personalInfoSchema = z.object({
 type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
 
 interface PersonalInfoFormProps {
-  onComplete?: () => void;
+  onComplete?: (info?: any) => void;
 }
 
 export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
@@ -158,7 +158,7 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
       });
 
       if (onComplete) {
-        onComplete();
+        onComplete(values);
       }
     } catch (error) {
       console.error("Error saving personal info:", error);
