@@ -15,17 +15,13 @@
 ** Table of Contents**
 
 1. [Overview](#overview)
-2. [Navigation & Pages](#navigation--pages)
-3. [Key Metrics](#key-metrics)
-4. [Core Values](#core-values)
-5. [Features](#features)
-6. [Tech Stack](#tech-stack)
-7. [Screenshots](#screenshots)
-8. [Getting Started](#getting-started)
-9. [Project Structure](#project-structure)
-10. [Team](#team)
-11. [FAQ Highlights](#faq-highlights)
-12. [Footer & Legal](#footer--legal)
+2. [Key Metrics](#key-metrics)
+3. [Features](#features)
+4. [Tech Stack](#tech-stack)
+5. [Screenshots](#screenshots)
+6. [Getting Started](#getting-started)
+7. [Project Structure](#project-structure)
+8. [FAQ Highlights](#faq-highlights)
 
 </div>
 
@@ -34,7 +30,7 @@
 ## <span style="color: #16A085;">Overview</span>
 
 <p>
-Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> uses OCR + AI to:
+Created by a former credit repair specialist, <strong>CreditClarityAI</strong> uses OCR + AI to:
 </p>
 
 <ul>
@@ -43,43 +39,9 @@ Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> use
   <li> Automate the credit-repair workflow</li>
 </ul>
 
----
-
-## <span style="color: #2980B9;">Navigation & Pages</span>
-
-| **Menu Item**     | **Description**                           |
-| ----------------- | ----------------------------------------- |
-| Home              | Mission statement + “Get Started” CTA     |
-| About             | Our story & founding principles           |
-| Pricing           | Subscription tiers & comparisons          |
-| FAQ               | Common questions & answers                |
-| Contact           | Support form & contact details            |
-| Dispute Generator | Upload report → AI drafts dispute letters |
-| Account           | Dashboard: manage disputes & view history |
-
-<hr>
-
-## <span style="color: #C0392B;">Key Metrics</span>
-
-<br>
-
-<p align="center">
-  <strong style="font-size:1.2em;">15,000+</strong> Customers Served  |  
-  <strong style="font-size:1.2em;">85%</strong> Success Rate  |  
-  <strong style="font-size:1.2em;">68</strong> Avg. Score Increase
-</p>
 
 ---
 
-## <span style="color: #8E44AD;">Core Values</span>
-
-<blockquote style="border-left: 4px solid #8E44AD; padding-left:1em;">
-<p><strong>Transparency</strong><br>Upfront on capabilities, pricing & no hidden fees.</p>
-<p><strong>Education</strong><br>Empower users with credit-repair & financial literacy.</p>
-<p><strong>Customer Success</strong><br>Measure success by real score improvements.</p>
-</blockquote>
-
----
 
 ## <span style="color: #D35400;">Features</span>
 
@@ -107,16 +69,16 @@ Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> use
 ## <span style="color: #34495E;">Screenshots</span>
 
 <p align="center">
-  <img src="images/home.png" alt="Home Page" width="600"/>
-  <br><em>Home</em>
+  <img src="./images/dashboard.png" alt="Dashboard" width="600"/>
+  <br><em>Dashboard</em>
 </p>
 <p align="center">
-  <img src="images/dispute-generator.png" alt="Generator" width="600"/>
+  <img src="images/disputeGenerator.png" alt="Generator" width="600"/>
   <br><em>Dispute Generator</em>
 </p>
 <p align="center">
-  <img src="images/dashboard.png" alt="Dashboard" width="600"/>
-  <br><em>User Dashboard</em>
+  <img src="images/disputes.png" alt="Disputes" width="600"/>
+  <br><em>Disputes</em>
 </p>
 
 ---
@@ -125,7 +87,7 @@ Founded in 2024 by a former credit analyst, <strong>CreditClarityAI</strong> use
 
 <ol>
   <li>**Clone**  
-    <pre><code>git clone https://github.com/your-username/creditclarityai.git
+    <pre><code>git clone https://github.com/rorschach3/credit-clarity-ai-assist.git
 cd creditclarityai</code></pre>
   </li>
   <li>**Virtual Env**  
@@ -171,22 +133,11 @@ creditclarityai/
 
 ---
 
-## <span style="color: #E74C3C;">Team</span>
-
-| Name             | Role                     |
-| ---------------- | ------------------------ |
-| Jane Cooper      | CEO & Founder            |
-| Robert Fox       | CTO                      |
-| Leslie Alexander | Head of AI Development   |
-| Michael Johnson  | Senior Credit Specialist |
-
----
-
 ## <span style="color: #2C3E50;">FAQ Highlights</span>
 
 > ### Why are dispute letters effective?
 >
-> Under the FCRA, bureaus must investigate disputes within 30 days. If unverified, they remove inaccuracies.
+> Under the FCRA, bureaus must investigate disputes within 30 days. If they do not verify within 30 days they must remove inaccuracies.
 
 > ### How does AI boost success?
 >
@@ -194,14 +145,6 @@ creditclarityai/
 
 > ### What can be disputed?
 >
-> Late payments, collections, charge-offs, repossessions, bankruptcies & more—if inaccurate or unverifiable.
+> Late payments, collections, charge-offs, repossessions, bankruptcies, student loans, auto loans, mortgages, child support.
 
-For full FAQs, see [`faq.html`](app/templates/faq.html).
-
----
-
-## <span style="color: #95A5A6;">Footer & Legal</span>
-
-<p align="center">
-© 2025 CreditClarityAI &nbsp;|&nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp;|&nbsp; <a href="terms.html">Terms of Service</a>
-</p>
+For full FAQs, see [`faq.html`](app/templates/faq.html)
