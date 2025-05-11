@@ -31,6 +31,11 @@ serve(async (req) => {
       bucket => bucket.name === 'dispute_documents'
     );
 
+    const creditReportsBucketExists = existingBuckets?.some(
+      bucket => bucket.name === 'credit_reports'
+    );
+
+    // Create dispute_documents bucket if it doesn't exist
     if (!disputeDocumentsBucketExists) {
       const { data, error } = await supabase
         .storage
@@ -43,17 +48,27 @@ serve(async (req) => {
       if (error) throw error;
     }
 
-    // Create RLS policies for the bucket
-    // This is already done in the SQL migration
+    // Create credit_reports bucket if it doesn't exist
+    if (!creditReportsBucketExists) {
+      const { data, error } = await supabase
+        .storage
+        .createBucket('credit_reports', {
+          public: false,
+          fileSizeLimit: 10485760, // 10MB
+          allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+        });
+
+      if (error) throw error;
+    }
 
     return new Response(
-      JSON.stringify({ message: "Dispute documents bucket configured successfully" }),
+      JSON.stringify({ message: "Storage buckets configured successfully" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error setting up storage bucket:', error);
+    console.error('Error setting up storage buckets:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to configure storage bucket' }),
+      JSON.stringify({ error: error.message || 'Failed to configure storage buckets' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
