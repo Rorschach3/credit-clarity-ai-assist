@@ -1,10 +1,11 @@
+
 import {
   BrowserRouter as Router,
   Route,
   Routes,
 } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider"
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import Index from "@/pages/Index";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
@@ -22,6 +23,7 @@ import AdminPage from "@/pages/AdminPage";
 import DisputeGeneratorPage from "@/pages/DisputeGeneratorPage";
 import FeaturesPage from "@/pages/FeaturesPage";
 import TestimonialsPage from "@/pages/TestimonialsPage";
+import { Toaster } from "@/components/ui/toaster";
 
 function App() {
   const { isLoading } = useAuth();
@@ -38,33 +40,42 @@ function App() {
       disableTransitionOnChange
     >
       <Router>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/faq" element={<FaqPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/features" element={<FeaturesPage />} />
-            <Route path="/testimonials" element={<TestimonialsPage />} />
-            <Route path="/placeholder-dashboard" element={<PlaceholderDashboard />} />
-            <Route path="/dispute-generator" element={<DisputeGeneratorPage />} />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
-              }
-            />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/testimonials" element={<TestimonialsPage />} />
+          <Route path="/placeholder-dashboard" element={<PlaceholderDashboard />} />
+          <Route path="/dispute-generator" element={<DisputeGeneratorPage />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
       </Router>
+      <Toaster />
     </ThemeProvider>
   );
 }
 
-export default App;
+function AppWithAuth() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
+
+export default AppWithAuth;

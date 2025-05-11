@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { EnhancedDocumentScanner } from "@/components/document/EnhancedDocumentScanner";
 import { type NegativeItem } from "@/types/document";
