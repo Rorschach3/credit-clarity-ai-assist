@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth"; // Fixed import path
 import { FileUploadZone } from "./FileUploadZone";
 import { ScanStatus } from "./ScanStatus";
-import { SubscriptionPrompt } from "./SubscriptionPrompt";
 import type { NegativeItem } from "@/types/document";
 
 interface DocumentScannerProps {
@@ -19,69 +18,14 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete' | 'error'>('idle');
-  const [subscription, setSubscription] = useState<{subscribed: boolean; subscription_tier?: string}>();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      checkSubscription();
-    }
-  }, [user]);
-
-  const checkSubscription = useCallback(async () => {
-    try {
-      const { data: { url } } = await supabase.functions.invoke('check-subscription');
-      if (!url) {
-        console.error('No URL returned from check-subscription function');
-        return;
-      }
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const subData = await response.json();
-      console.log('Subscription data:', subData);
-      setSubscription(subData);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-      toast({
-        title: "Subscription Check Failed",
-        description: "Unable to verify your subscription status. Please try again.",
-        variant: "destructive"
-      });
-    }
-  }, [toast]);
-
-  const handleSubscribe = async () => {
-    try {
-      const { data: { url } } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: 'price_H5ggYwtDq4fbrJ' },
-      });
-      if (url) {
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast({
-        title: "Error",
-        description: "Could not initiate subscription process. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleScan = async () => {
-    if (!file || !subscription?.subscribed || !user) {
+    if (!file) {
       toast({
         title: "Error",
-        description: !subscription?.subscribed 
-          ? "You need a subscription to scan documents" 
-          : "Please upload a file first",
+        description: "Please upload a file first",
         variant: "destructive"
       });
       return;
@@ -91,24 +35,26 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
     setScanStatus('scanning');
 
     try {
-      const userId = user.id;
+      const userId = user?.id || 'anonymous';
       const filePath = `${userId}/${Date.now()}_${file.name}`;
       
       console.log('Uploading file to:', filePath);
       
-      const { error: uploadError, data } = await supabase.storage
-        .from('credit_reports')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      if (user) {
+        const { error: uploadError, data } = await supabase.storage
+          .from('credit_reports')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('File uploaded successfully:', data?.path);
       }
-
-      console.log('File uploaded successfully:', data?.path);
 
       // Simulate document analysis with mock data
       setTimeout(() => {
@@ -165,10 +111,6 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       });
     }
   };
-
-  if (!subscription?.subscribed) {
-    return <SubscriptionPrompt onSubscribe={handleSubscribe} />;
-  }
 
   return (
     <Card className="w-full">

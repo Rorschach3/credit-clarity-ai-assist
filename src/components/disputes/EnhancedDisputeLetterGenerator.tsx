@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -327,7 +328,7 @@ Last 4 SSN: ${ssnLastFour}`;
           <div>
             <CardTitle className="flex items-center gap-2">
               AI-Enhanced Dispute Letters
-              <span className="bg-blue-100 text-blue-800 ml-2">AI Powered</span>
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 ml-2">AI Powered</Badge>
             </CardTitle>
             <CardDescription>
               Review and customize your dispute letters for each credit bureau
@@ -365,7 +366,6 @@ Last 4 SSN: ${ssnLastFour}`;
             
             {!personalInfo && (
               <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
-                {/* <AlertCircle className="h-4 w-4" /> */}
                 <AlertDescription>
                   We're using default personal information in your letter. For a more personalized letter, 
                   please go back and complete your personal information.
