@@ -1,155 +1,93 @@
-
-import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, CheckCircle2, AlertCircle, Bot } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
-import { FileUploadZone } from "./FileUploadZone";
-import { ScanStatus } from "./ScanStatus";
-import { SubscriptionPrompt } from "./SubscriptionPrompt";
-import type { NegativeItem } from "@/types/document";
-import { aiService, ExtractedText, DisputeAnalysis } from "@/utils/ai-service";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card"
+import {
+  Alert, AlertDescription, AlertTitle,
+} from "@/components/ui/alert"
+import {
+  Tabs, TabsList, TabsTrigger, TabsContent,
+} from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import {
+  Loader2, FileText, CheckCircle2, AlertCircle, Bot,
+} from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
+import { FileUploadZone } from "./FileUploadZone"
+import type { NegativeItem } from "@/types/document"
+import { aiService, ExtractedText, DisputeAnalysis } from "@/utils/ai-service"
 
 interface EnhancedDocumentScannerProps {
   onScanComplete: (negativeItems: NegativeItem[], analysis?: DisputeAnalysis) => void;
 }
 
 export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScannerProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<'idle' | 'uploading' | 'extracting' | 'analyzing' | 'complete' | 'error'>('idle');
-  const [activeTab, setActiveTab] = useState<"upload" | "scan" | "analyze">("upload");
-  const [subscription, setSubscription] = useState<{subscribed: boolean; subscription_tier?: string}>();
-  const [extractedText, setExtractedText] = useState<ExtractedText | null>(null);
-  const [disputeAnalysis, setDisputeAnalysis] = useState<DisputeAnalysis | null>(null);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingStep, setProcessingStep] = useState('');
-  
-  const { toast } = useToast();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      checkSubscription();
-    }
-  }, [user]);
-
-  const checkSubscription = useCallback(async () => {
-    try {
-      const { data: { url } } = await supabase.functions.invoke('check-subscription');
-      if (!url) {
-        console.error('No URL returned from check-subscription function');
-        return;
-      }
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const subData = await response.json();
-      console.log('Subscription data:', subData);
-      setSubscription(subData);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-      toast({
-        title: "Subscription Check Failed",
-        description: "Unable to verify your subscription status. Please try again.",
-        variant: "destructive"
-      });
-    }
-  }, [toast]);
-
-  const handleSubscribe = async () => {
-    try {
-      const { data: { url } } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: 'price_H5ggYwtDq4fbrJ' },
-      });
-      if (url) {
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast({
-        title: "Error",
-        description: "Could not initiate subscription process. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
+  const [file, setFile] = useState<File | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanStatus, setScanStatus] = useState<'idle' | 'uploading' | 'extracting' | 'analyzing' | 'complete' | 'error'>('idle')
+  const [activeTab, setActiveTab] = useState<"upload" | "scan" | "analyze">("upload")
+  const [extractedText, setExtractedText] = useState<ExtractedText | null>(null)
+  const [disputeAnalysis, setDisputeAnalysis] = useState<DisputeAnalysis | null>(null)
+  const [processingProgress, setProcessingProgress] = useState(0)
+  const [processingStep, setProcessingStep] = useState('')
+  const { toast } = useToast()
+  const { user } = useAuth()
 
   const updateProgress = (step: string, progress: number) => {
-    setProcessingStep(step);
-    setProcessingProgress(progress);
-  };
+    setProcessingStep(step)
+    setProcessingProgress(progress)
+  }
 
   const handleScan = async () => {
-    if (!file || !subscription?.subscribed || !user) {
+    if (!file || !user) {
       toast({
         title: "Error",
-        description: !subscription?.subscribed 
-          ? "You need a subscription to scan documents" 
-          : "Please upload a file first",
-        variant: "destructive"
-      });
-      return;
+        description: "Please upload a file first",
+        variant: "destructive",
+      })
+      return
     }
 
-    setIsScanning(true);
-    setScanStatus('uploading');
-    updateProgress('Uploading document', 10);
+    setIsScanning(true)
+    setScanStatus("uploading")
+    updateProgress("Uploading document", 10)
 
     try {
-      const userId = user.id;
-      const filePath = `${userId}/${Date.now()}_${file.name}`;
-      
-      // Upload the file to storage
+      const userId = user.id
+      const filePath = `${userId}/${Date.now()}_${file.name}`
+
       const { error: uploadError, data } = await supabase.storage
-        .from('credit_reports')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .from("credit_reports")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false })
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-      
-      const fileUrl = data?.path 
-        ? `${supabase.storage.from('credit_reports').getPublicUrl(data.path).data.publicUrl}`
-        : '';
-      
-      if (!fileUrl) {
-        throw new Error('Failed to get file URL');
-      }
+      if (uploadError) throw uploadError
 
-      // Step 1: Extract text using AI OCR
-      updateProgress('Extracting text from document', 30);
-      setScanStatus('extracting');
-      const extractedData = await aiService.extractTextFromDocument(
-        fileUrl,
-        file.type
-      );
-      
-      setExtractedText(extractedData);
-      
-      // Step 2: Analyze the report with AI
-      updateProgress('Analyzing credit report', 60);
-      setScanStatus('analyzing');
-      const analysis = await aiService.analyzeReport(extractedData);
-      
-      setDisputeAnalysis(analysis);
-      updateProgress('Analysis complete', 100);
-      
-      // Convert the analysis results to the format expected by the onScanComplete callback
+      const fileUrl = supabase.storage
+        .from("credit_reports")
+        .getPublicUrl(data.path).data.publicUrl
+
+      if (!fileUrl) throw new Error("Failed to get file URL")
+
+      updateProgress("Extracting text from document", 30)
+      setScanStatus("extracting")
+
+      const extractedData = await aiService.extractTextFromDocument(fileUrl, file.type)
+      setExtractedText(extractedData)
+
+      updateProgress("Analyzing credit report", 60)
+      setScanStatus("analyzing")
+
+      const analysis = await aiService.analyzeReport(extractedData)
+      setDisputeAnalysis(analysis)
+
+      updateProgress("Analysis complete", 100)
+      setScanStatus("complete")
+      setIsScanning(false)
+      setActiveTab("analyze")
+
       const negativeItems: NegativeItem[] = analysis.negativeItems.map(item => ({
         id: item.id,
         creditorName: item.creditorName,
@@ -158,32 +96,24 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
         dateReported: item.dateReported,
         bureaus: item.bureaus,
         reason: item.reason,
-        status: item.status
-      }));
+        status: item.status,
+      }))
 
-      setScanStatus('complete');
-      setIsScanning(false);
-      setActiveTab('analyze');
-      onScanComplete(negativeItems, analysis);
-      
+      onScanComplete(negativeItems, analysis)
       toast({
         title: "Analysis Complete",
         description: `Found ${negativeItems.length} negative items on your credit report.`,
-      });
+      })
     } catch (error) {
-      console.error("Error scanning document:", error);
-      setScanStatus('error');
-      setIsScanning(false);
+      console.error("Scan failed:", error)
+      setScanStatus("error")
+      setIsScanning(false)
       toast({
         title: "Scan Failed",
         description: "There was an error analyzing your document. Please try again.",
-        variant: "destructive"
-      });
+        variant: "destructive",
+      })
     }
-  };
-
-  if (!subscription?.subscribed) {
-    return <SubscriptionPrompt onSubscribe={handleSubscribe} />;
   }
 
   return (
@@ -201,25 +131,23 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "upload" | "scan" | "analyze")} className="w-full">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="upload">Upload Document</TabsTrigger>
             <TabsTrigger value="scan" disabled={!file}>Process & Scan</TabsTrigger>
             <TabsTrigger value="analyze" disabled={!disputeAnalysis}>Analysis Results</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="upload">
-            <FileUploadZone 
-              file={file} 
+            <FileUploadZone
+              file={file}
               onFileChange={(newFile) => {
-                setFile(newFile);
-                if (newFile) {
-                  setActiveTab("scan");
-                }
-              }} 
+                setFile(newFile)
+                if (newFile) setActiveTab("scan")
+              }}
             />
           </TabsContent>
-          
+
           <TabsContent value="scan">
             {file && (
               <div className="space-y-4">
@@ -236,18 +164,16 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                         Processing...
                       </span>
-                    ) : scanStatus === 'complete' ? (
+                    ) : scanStatus === "complete" ? (
                       <span className="flex items-center">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Complete
                       </span>
-                    ) : (
-                      'Ready'
-                    )}
+                    ) : "Ready"}
                   </Badge>
                 </div>
 
-                {scanStatus === 'error' ? (
+                {scanStatus === "error" ? (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
@@ -263,17 +189,17 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
                         <span>{processingProgress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
                           style={{ width: `${processingProgress}%` }}
-                        ></div>
+                        />
                       </div>
                       {processingStep && (
                         <p className="text-xs text-muted-foreground">Current step: {processingStep}</p>
                       )}
                     </div>
 
-                    {!isScanning && scanStatus !== 'complete' && (
+                    {!isScanning && scanStatus !== "complete" && (
                       <Button
                         onClick={handleScan}
                         className="w-full"
@@ -283,10 +209,10 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
                         Start AI Analysis
                       </Button>
                     )}
-                    
-                    {scanStatus === 'complete' && (
+
+                    {scanStatus === "complete" && (
                       <Button
-                        onClick={() => setActiveTab('analyze')}
+                        onClick={() => setActiveTab("analyze")}
                         variant="outline"
                         className="w-full"
                       >
@@ -298,7 +224,7 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="analyze">
             {disputeAnalysis && (
               <div className="space-y-4">
@@ -326,19 +252,21 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={() => onScanComplete(
-                    disputeAnalysis.negativeItems.map(item => ({
-                      id: item.id,
-                      creditorName: item.creditorName,
-                      accountNumber: item.accountNumber,
-                      amount: item.amount,
-                      dateReported: item.dateReported,
-                      bureaus: item.bureaus,
-                      reason: item.reason,
-                      status: item.status
-                    })),
-                    disputeAnalysis
-                  )}>
+                  <Button
+                    onClick={() => onScanComplete(
+                      disputeAnalysis.negativeItems.map(item => ({
+                        id: item.id,
+                        creditorName: item.creditorName,
+                        accountNumber: item.accountNumber,
+                        amount: item.amount,
+                        dateReported: item.dateReported,
+                        bureaus: item.bureaus,
+                        reason: item.reason,
+                        status: item.status,
+                      })),
+                      disputeAnalysis
+                    )}
+                  >
                     Continue to Dispute Selection
                   </Button>
                 </div>
@@ -348,5 +276,6 @@ export function EnhancedDocumentScanner({ onScanComplete }: EnhancedDocumentScan
         </Tabs>
       </CardContent>
     </Card>
-  );
+  )
 }
+export default EnhancedDocumentScanner;

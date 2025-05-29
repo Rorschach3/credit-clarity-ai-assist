@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window"],
+    "module": "esnext",
+    "target": "esnext",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "strict": true
+  },
+  "imports": {
+    "https://deno.land/std@0.200.0/http/server.ts": "https://deno.land/std@0.200.0/http/server.ts",
+    "https://deno.land/x/djwt@v2.9.1/mod.ts": "https://deno.land/x/djwt@v2.9.1/mod.ts",
+    "./supabase/utils/jwt.ts": "./supabase/utils/jwt.ts"
+  }
+}

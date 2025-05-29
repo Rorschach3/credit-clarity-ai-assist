@@ -1,8 +1,9 @@
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { differenceInCalendarDays, addBusinessDays } from 'date-fns'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { Dispute, Tables } from "@/integrations/supabase/schema"
+import type { Database, Tables } from "@/integrations/supabase/schema";
+import useActivityMonitoring from "@/hooks/use-activity-monitoring";
 import {
   Table,
   TableBody,
@@ -15,35 +16,36 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Printer, Loader2, FileText, TruckIcon } from "lucide-react"
+import RealTimeQueue from "./RealTimeQueue"
 
 interface DisputeManagementProps {
   isLoading: boolean
-  disputes: Dispute[]
+  disputes: Tables<'public'>['disputes']['Row'][]
   fetchDisputes: () => Promise<void>
+  setDisputes: React.Dispatch<React.SetStateAction<Tables<'public'>['disputes']['Row'][]>>
 }
 
 export function DisputeManagement({ isLoading, disputes, fetchDisputes }: DisputeManagementProps) {
   const { toast } = useToast()
-  const [processingDisputes, setProcessingDisputes] = useState<{[key: string]: boolean}>({})
+  const [processingDisputes, setProcessingDisputes] = useState<{ [key: string]: boolean }>({})
+  useActivityMonitoring("Viewed Dispute Management")
 
-  async function generateShippingLabel(dispute: Dispute) {
+  async function generateShippingLabel(dispute: Tables<'public'>['disputes']['Row']) {
     try {
       setProcessingDisputes(prev => ({ ...prev, [dispute.id]: true }))
       console.log("Generating shipping label for dispute:", dispute)
-      
-      // Make sure the dispute has a mailing address
+
       if (!dispute.mailing_address) {
         throw new Error("Dispute has no mailing address")
       }
-      
-      // Parse address parts from mailing_address
+
       const addressLines = dispute.mailing_address.split('\n')
       const cityStateZip = addressLines.length > 1 ? addressLines[1].split(',') : ['', '']
       const city = cityStateZip[0].trim()
-      const stateZip = cityStateZip.length > 1 ? cityStateZip[1].trim().split(' ') : ['', '']
+      const stateZip = cityStateZip[1].trim().split(' ')
       const state = stateZip[0]
       const zip = stateZip.length > 1 ? stateZip[1] : ''
-      
+
       const response = await supabase.functions.invoke('generate-shipping-label', {
         body: {
           disputeId: dispute.id,
@@ -62,12 +64,9 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         console.error("Error from generate-shipping-label function:", response.error)
         throw new Error(response.error.message)
       }
-      
-      console.log("Response from generate-shipping-label:", response)
 
-      // Update dispute with shipping label URL and tracking number
       const { error: updateError } = await supabase
-        .from(Tables.disputes)
+        .from('disputes')
         .update({
           shipping_label_url: response.data.labelUrl,
           tracking_number: response.data.trackingNumber,
@@ -85,26 +84,27 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         description: "Shipping label generated successfully",
       })
 
-      // Refresh disputes list
       fetchDisputes()
-    } catch (error: any) {
-      console.error("Error in generateShippingLabel:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate shipping label",
-        variant: "destructive",
-      })
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error in generateShippingLabel:", error)
+        toast({
+          title: "Error",
+          description: error.message || "Failed to generate shipping label",
+          variant: "destructive",
+        })
+      }
     } finally {
       setProcessingDisputes(prev => ({ ...prev, [dispute.id]: false }))
     }
   }
 
-  async function markDisputeAsSent(dispute: Dispute) {
+  async function markDisputeAsSent(dispute: Tables<'public'>['disputes']['Row']) {
     try {
       setProcessingDisputes(prev => ({ ...prev, [dispute.id]: true }))
-      
+
       const { error } = await supabase
-        .from(Tables.disputes)
+        .from('disputes')
         .update({
           status: 'sent'
         })
@@ -120,15 +120,16 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
         description: "Dispute marked as sent",
       })
 
-      // Refresh disputes list
       fetchDisputes()
-    } catch (error: any) {
-      console.error("Error in markDisputeAsSent:", error)
-      toast({
-        title: "Error",
-        description: `Failed to update dispute status: ${error.message}`,
-        variant: "destructive",
-      })
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error in markDisputeAsSent:", error)
+        toast({
+          title: "Error",
+          description: `Failed to update dispute status: ${error.message}`,
+          variant: "destructive",
+        })
+      }
     } finally {
       setProcessingDisputes(prev => ({ ...prev, [dispute.id]: false }))
     }
@@ -147,28 +148,91 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
     }
   }
 
+  const [escalationThreshold] = useState(35) // Escalate if no response in 35 days
+
+  useEffect(() => {
+    const checkDeadlines = async () => {
+      const nearingDeadline = disputes.filter(dispute =>
+        differenceInCalendarDays(new Date(dispute.created_at), new Date()) >= 40
+      )
+      
+      if (nearingDeadline.length > 0) {
+        await supabase
+          .from('audit_history')
+          .insert(nearingDeadline.map(dispute => ({
+            dispute_id: dispute.id,
+            action: 'deadline_warning',
+            details: `FCRA §611 response deadline approaching`,
+            created_at: new Date().toISOString()
+          })))
+      }
+    }
+    
+    checkDeadlines()
+    const interval = setInterval(checkDeadlines, 3600000) // Check hourly
+    return () => clearInterval(interval)
+  }, [disputes])
+
+  const autoEscalateCases = async () => {
+    const toEscalate = disputes.filter(dispute =>
+      dispute.status === 'processing' &&
+      differenceInCalendarDays(new Date(), new Date(dispute.created_at)) >= escalationThreshold
+    )
+
+    for (const dispute of toEscalate) {
+      await supabase
+        .from('disputes')
+        .update({ status: 'escalated' })
+        .eq('id', dispute.id)
+      
+      await supabase
+        .from('audit_history')
+        .insert({
+          dispute_id: dispute.id,
+          action: 'auto_escalation',
+          details: `Escalated after ${escalationThreshold} days without resolution`,
+          created_at: new Date().toISOString()
+        })
+    }
+    
+    if (toEscalate.length > 0) {
+      setDisputes(prev => prev.map(d =>
+        toEscalate.some(es => es.id === d.id) ? {...d, status: 'escalated'} : d
+      ))
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Dispute Management</CardTitle>
-        <CardDescription>View and manage customer dispute letters and shipments</CardDescription>
+        <CardDescription className="flex gap-2">
+          <Badge variant="outline" className="border-blue-200 text-blue-600">
+            FCRA §611 Compliance
+          </Badge>
+          View and manage customer dispute letters and shipments
+        </CardDescription>
       </CardHeader>
       <CardContent>
+        <RealTimeQueue />
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Credit Bureau</TableHead>
-                <TableHead>Mailing Address</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Created At</TableHead>
+                <TableHead>FCRA Violations</TableHead>
+                <TableHead>Deadline</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Content Preview</TableHead>
+                <TableHead>Attachments</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex items-center justify-center">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                       Loading disputes...
@@ -177,7 +241,7 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
                 </TableRow>
               ) : disputes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     No disputes found.
                     <div className="mt-2 text-sm text-muted-foreground">
                       User-generated disputes will appear here.
@@ -187,16 +251,45 @@ export function DisputeManagement({ isLoading, disputes, fetchDisputes }: Disput
               ) : (
                 disputes.map((dispute) => (
                   <TableRow key={dispute.id}>
-                    <TableCell>{dispute.credit_bureau}</TableCell>
+                      <TableCell className="font-medium">
+                        {dispute.credit_bureau}
+                      </TableCell>
+                      <TableCell>
+                        {createdDate.toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {dispute.fcra_violations?.split(',').map((violation) => (
+                            <Badge
+                              key={violation}
+                              variant="destructive"
+                              className="text-xs"
+                            >
+                              {violation}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className={
+                        differenceInCalendarDays(new Date(), createdDate) > 40
+                          ? 'text-red-600 font-medium'
+                          : ''
+                      }>
+                        {deadlineDate.toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          dispute.status === 'escalated' ? 'destructive' : 'outline'
+                        }>
+                          {dispute.status}
+                        </Badge>
+                      </TableCell>
                     <TableCell>
-                      <div className="max-h-20 overflow-y-auto">
-                        {dispute.mailing_address.split('\n').map((line, i) => (
-                          <div key={i}>{line}</div>
-                        ))}
-                      </div>
+                      {dispute.mailing_address ? dispute.mailing_address.substring(0, 50) + '...' : 'No content'}
                     </TableCell>
-                    <TableCell>{getStatusBadge(dispute.status)}</TableCell>
-                    <TableCell>{new Date(dispute.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {'No attachments available'}
+                    </TableCell>
                     <TableCell>
                       {dispute.status === 'pending' ? (
                         <Button

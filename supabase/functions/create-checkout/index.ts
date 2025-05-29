@@ -1,118 +1,102 @@
-
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import express from "express";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper logging function for enhanced debugging
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+const app = express();
+app.use(express.json());
+
+app.use((req, res, next) => {
+  res.set(corsHeaders);
+  next();
+});
+
+const logStep = (step: string, details?: unknown) => {
+  const formatted = details ? ` - ${JSON.stringify(details)}` : "";
+  console.log(`[CREATE-CHECKOUT] ${step}${formatted}`);
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+app.post("/create-checkout", async (req, res) => {
+  const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? "";
+  const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? "";
+
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !STRIPE_SECRET_KEY) {
+    return res.status(500).json({ error: "Missing environment variables" });
   }
 
-  // Create Supabase client using the anon key for user authentication.
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-04-30.basil" });
 
   try {
     logStep("Function started");
-    
-    // Retrieve authenticated user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    
+
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || typeof authHeader !== "string") {
+      throw new Error("Missing Authorization header");
+    }
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
 
-    // Initialize Stripe
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2023-10-16",
-    });
+    if (authError || !userData?.user?.email) {
+      throw new Error("User not authenticated");
+    }
 
-    // Check if a Stripe customer record exists for this user
+    const user = userData.user;
+    logStep("User authenticated", { id: user.id, email: user.email });
+
+    let customerId: string;
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
+
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
     } else {
-      // Create a new customer if none exists
       const newCustomer = await stripe.customers.create({
         email: user.email,
-        metadata: {
-          user_id: user.id
-        }
+        metadata: { user_id: user.id },
       });
       customerId = newCustomer.id;
       logStep("Created new customer", { customerId });
     }
 
-    // Get the price ID from the request
-    const { priceId } = await req.json();
+    const { priceId } = req.body;
     if (!priceId) throw new Error("Price ID is required");
-    logStep("Processing price ID", { priceId });
 
-    // Map our internal pricing IDs to actual Stripe price IDs
-    // You would replace these with your actual Stripe price IDs from your dashboard
-    const priceIdMap: Record<string, string> = {
-      "price_basic_monthly": process.env.STRIPE_PRICE_BASIC_MONTHLY || "price_basic_monthly",
-      "price_basic_yearly": process.env.STRIPE_PRICE_BASIC_YEARLY || "price_basic_yearly",
-      "price_plus_monthly": process.env.STRIPE_PRICE_PLUS_MONTHLY || "price_plus_monthly",
-      "price_plus_yearly": process.env.STRIPE_PRICE_PLUS_YEARLY || "price_plus_yearly", 
-      "price_pro_monthly": process.env.STRIPE_PRICE_PRO_MONTHLY || "price_pro_monthly",
-      "price_pro_yearly": process.env.STRIPE_PRICE_PRO_YEARLY || "price_pro_yearly",
+    const priceMap: Record<string, string> = {
+      price_basic_monthly: process.env.STRIPE_PRICE_BASIC_MONTHLY ?? "price_basic_monthly",
+      price_basic_yearly: process.env.STRIPE_PRICE_BASIC_YEARLY ?? "price_basic_yearly",
+      price_plus_monthly: process.env.STRIPE_PRICE_PLUS_MONTHLY ?? "price_plus_monthly",
+      price_plus_yearly: process.env.STRIPE_PRICE_PLUS_YEARLY ?? "price_plus_yearly",
+      price_pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "price_pro_monthly",
+      price_pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY ?? "price_pro_yearly",
     };
 
-    const stripePriceId = priceIdMap[priceId] || priceId;
+    const stripePriceId = priceMap[priceId] ?? priceId;
+    const origin = req.headers.origin ?? "http://localhost:3000";
 
-    // Create a subscription session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [
-        {
-          price: stripePriceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/placeholder-dashboard?success=true`,
-      cancel_url: `${req.headers.get("origin")}/pricing?success=false`,
+      success_url: `${origin}/placeholder-dashboard?success=true`,
+      cancel_url: `${origin}/pricing?success=false`,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", { sessionId: session.id });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    res.status(200).json({ url: session.url });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
+
+export default app;

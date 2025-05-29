@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/schema";
+import type { Database } from "@/integrations/supabase/schema";
+
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   // Get the return URL from location state if it exists
-  const returnTo = location.state?.returnTo || '/placeholder-dashboard';
+  const returnTo = location.state?.returnTo || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,9 +36,9 @@ export default function LoginPage() {
       
       // Check if the user is an admin
       const { data: roleData } = await supabase
-        .from(Tables.user_roles)
-        .select('role')
-        .eq('user_id', data.user.id)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
         .single();
       
       toast.success("Logged in successfully!");
@@ -48,10 +49,10 @@ export default function LoginPage() {
       } else {
         navigate(returnTo);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsLoading(false);
       
-      if (error.message === "Invalid login credentials") {
+      if (error instanceof Error && error.message === "Invalid login credentials") {
         toast.error("Invalid email or password. Please try again.");
       } else {
         toast.error("Login failed. Please try again later.");

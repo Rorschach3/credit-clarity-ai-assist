@@ -64,7 +64,7 @@ export function NegativeItemCard({
               </TooltipProvider>
             )}
           </div>
-          <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50">
+          <Badge variant="outline" className="text-red-500 border-red-200 bg-[rgba(255,255,255,0.08)]">
             {item.reason}
           </Badge>
         </div>

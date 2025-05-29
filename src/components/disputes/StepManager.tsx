@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { EnhancedDocumentScanner } from "@/components/document/EnhancedDocumentScanner";
 import { type NegativeItem } from "@/types/document";
@@ -15,6 +14,14 @@ import { GenerateLettersSection } from "@/components/disputes/GenerateLettersSec
 
 type Step = 'personal' | 'scan' | 'select' | 'documents' | 'generate' | 'complete';
 
+interface PersonalInfo {
+  firstName: string
+  lastName: string
+  address: string
+  dob: string
+  ssnLast4: string
+}
+
 interface StepManagerProps {
   steps: {
     id: string;
@@ -24,30 +31,29 @@ interface StepManagerProps {
   }[];
   onStepChange: (step: Step) => void;
   onReset: () => void;
-  personalInfo: any;
-  setPersonalInfo: (info: any) => void;
+  personalInfo: PersonalInfo;
+  setPersonalInfo: (info: PersonalInfo) => void;
+  initialSelectedItems?: NegativeItem[];
 }
 
-export function StepManager({ 
-  steps, 
-  onStepChange, 
-  onReset, 
+export function StepManager({
+  steps,
+  onStepChange,
+  onReset,
   personalInfo,
-  setPersonalInfo
+  setPersonalInfo,
+  initialSelectedItems = [],
 }: StepManagerProps) {
   const [step, setStep] = useState<Step>('personal');
   const [negativeItems, setNegativeItems] = useState<NegativeItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<NegativeItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<NegativeItem[]>(initialSelectedItems);
   const [disputeAnalysis, setDisputeAnalysis] = useState<DisputeAnalysis | null>(null);
   const [entryMethod, setEntryMethod] = useState<'scan' | 'manual'>('scan');
   const { toast } = useToast();
 
   const handleScanComplete = (items: NegativeItem[], analysis?: DisputeAnalysis) => {
     setNegativeItems(items);
-    if (analysis) {
-      setDisputeAnalysis(analysis);
-    }
-    
+    if (analysis) setDisputeAnalysis(analysis);
     if (items.length > 0) {
       setStep('select');
       onStepChange('select');
@@ -81,19 +87,17 @@ export function StepManager({
 
   const handleManualItemCreated = (newItem: NegativeItem) => {
     setNegativeItems(prev => [...prev, newItem]);
-    
     toast({
       title: "Item Added",
       description: "Dispute item has been added successfully.",
     });
-    
     if (step === 'scan') {
       setStep('select');
       onStepChange('select');
     }
   };
 
-  const handlePersonalInfoComplete = (info: any) => {
+  const handlePersonalInfoComplete = (info: PersonalInfo) => {
     setPersonalInfo(info);
     setStep('scan');
     onStepChange('scan');
@@ -107,13 +111,13 @@ export function StepManager({
     setStep('generate');
     onStepChange('generate');
   };
-  
+
   return (
     <>
       {step === 'personal' && (
         <PersonalInfoForm onComplete={handlePersonalInfoComplete} />
       )}
-      
+
       {step === 'scan' && (
         <InputMethodTabs
           entryMethod={entryMethod}
@@ -122,7 +126,7 @@ export function StepManager({
           manualContent={<ManualDisputeForm onItemCreated={handleManualItemCreated} />}
         />
       )}
-      
+
       {step === 'select' && (
         <>
           <InputMethodTabs
@@ -131,7 +135,6 @@ export function StepManager({
             scanContent={<EnhancedDocumentScanner onScanComplete={handleScanComplete} />}
             manualContent={<ManualDisputeForm onItemCreated={handleManualItemCreated} />}
           />
-          
           <EnhancedNegativeItemsList 
             items={negativeItems} 
             analysis={disputeAnalysis}
@@ -139,14 +142,14 @@ export function StepManager({
           />
         </>
       )}
-      
+
       {step === 'documents' && (
         <>
           <UserDocumentsSection onComplete={handleDocumentsComplete} />
           <SkipDocumentsAlert onSkip={skipDocumentsStep} />
         </>
       )}
-      
+
       {step === 'generate' && (
         <GenerateLettersSection
           selectedItems={selectedItems}
@@ -162,8 +165,10 @@ export function StepManager({
           }}
         />
       )}
-      
-      {step === 'complete' && <CompletionStep onRestart={onReset} />}
+
+      {step === 'complete' && (
+        <CompletionStep onRestart={onReset} />
+      )}
     </>
   );
 }

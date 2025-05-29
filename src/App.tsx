@@ -1,4 +1,4 @@
-
+import NegativeTradelinesPage from "@/pages/NegativeTradelinesPage";
 import {
   BrowserRouter as Router,
   Route,
@@ -6,8 +6,10 @@ import {
 } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider"
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
+import MainLayout from "@/components/layout/MainLayout";
 import Index from "@/pages/Index";
 import HomePage from "@/pages/HomePage";
+import Dashboard from "@/pages/DashboardPage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -18,16 +20,32 @@ import FaqPage from "@/pages/FaqPage";
 import PricingPage from "@/pages/PricingPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AdminRoute from "@/components/auth/AdminRoute";
-import PlaceholderDashboard from "@/pages/PlaceholderDashboard";
 import AdminPage from "@/pages/AdminPage";
-import DisputeGeneratorPage from "@/pages/DisputeGeneratorPage";
 import FeaturesPage from "@/pages/FeaturesPage";
 import TestimonialsPage from "@/pages/TestimonialsPage";
+import ProfilePage from "@/pages/ProfilePage";
 import { Toaster } from "@/components/ui/toaster";
+import BlogPage from "@/pages/BlogPage";
+import BlogPost from "@/components/BlogPost";
+import CreditReportsPage from "@/pages/CreditReportsPage";
+import CreditReportUploadPage from "@/pages/CreditReportUploadPage";
+import DisputeLetterPage from "@/pages/DisputeLetterPage";
+import DisputePacketPage from "@/pages/DisputePacketPage";
+
+import DisputeWizardPage from "@/pages/DisputeWizardPage";
 
 function App() {
+  const theme = "system";
+
+  return (
+    <AuthProvider>
+      <InnerApp theme={theme} />
+    </AuthProvider>
+  );
+}
+
+function InnerApp({ theme }: { theme: string }) {
   const { isLoading } = useAuth();
-  const theme = "system"
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -42,6 +60,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -52,8 +71,12 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/testimonials" element={<TestimonialsPage />} />
-          <Route path="/placeholder-dashboard" element={<PlaceholderDashboard />} />
-          <Route path="/dispute-generator" element={<DisputeGeneratorPage />} />
+          <Route path="/credit-report-upload" element={<CreditReportUploadPage />} />
+          <Route path="/dispute-letter" element={<DisputeLetterPage />} />
+          <Route path="/dispute-packet" element={<DisputePacketPage />} />
+          <Route path="/credit-reports" element={<CreditReportsPage />} />
+          <Route path="/reports" element={<CreditReportsPage />} />
+          <Route path="/negative-tradelines" element={<MainLayout><NegativeTradelinesPage /></MainLayout>} />
           <Route
             path="/admin"
             element={
@@ -62,20 +85,16 @@ function App() {
               </AdminRoute>
             }
           />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogPost />} />
+          <Route path="/dispute-wizard" element={<DisputeWizardPage />} />
         </Routes>
-      </Router>
-      <Toaster />
-    </ThemeProvider>
-  );
-}
+        </Router>
+        <Toaster />
+      </ThemeProvider>
+    );
+  }
 
-function AppWithAuth() {
-  return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  );
-}
-
-export default AppWithAuth;
+export default App;

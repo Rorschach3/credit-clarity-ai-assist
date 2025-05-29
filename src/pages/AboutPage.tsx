@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BarChart, Shield, FileSearch, User2, UserCheck, BookOpen } from "lucide-react";
 
+import { Navbar } from "@/components/layout/Navbar";
+
 export default function AboutPage() {
   const teamMembers = [
     {

@@ -19,22 +19,22 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
     steps:
-      - name: 🛎️ Checkout Code
+      - name:  Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🧰 Setup Node.js
+      - name:  Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 📥 Install Dependencies
+      - name:  Install Dependencies
         run: npm ci
 
-      - name: 🔨 Build with Vite
+      - name:  Build with Vite
         run: npm run build
 
-      - name: 🧪 Optional: Run Tests
+      - name: "Optional: Run Tests"
         run: npm test
         continue-on-error: true # Remove this if test failures should block deployment
 
@@ -43,13 +43,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: 🛎️ Checkout Code
+      - name:  Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🚀 Install Vercel CLI
+      - name:  Install Vercel CLI
         run: npm install -g vercel
 
-      - name: 🚢 Deploy to Vercel
+      - name:  Deploy to Vercel
         run: |
           echo "🚀 Deploying to Vercel..."
           vercel deploy --prod --yes \

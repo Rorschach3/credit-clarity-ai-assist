@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
@@ -22,47 +21,82 @@ export function Navbar() {
 
   return (
     <header className="bg-background border-b">
-      <div className="container flex items-center justify-between h-16">
+      <div className="container flex items-center justify-between h-10">
         <Link to="/" className="font-bold text-xl">
-          AI Credit Repair
+          CreditDispute
         </Link>
 
+        <nav className="hidden md:flex items-center gap-6">
+          <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
+            Home
+          </Link>
+          <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
+            About
+          </Link>
+          <Link to="/admin" className="text-sm font-medium transition-colors hover:text-primary">
+            Admin
+          </Link>
+          <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary">
+            Blog
+          </Link>
+          <Link to="/credit-report-upload" className="text-sm font-medium transition-colors hover:text-primary">
+            Credit Report Upload
+          </Link>
+          <Link to="/credit-reports" className="text-sm font-medium transition-colors hover:text-primary">
+            Credit Reports
+          </Link>
+          <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
+            Dashboard
+          </Link>
+          <Link to="/dispute-letter" className="text-sm font-medium transition-colors hover:text-primary">
+            Dispute Letter
+          </Link>
+          <Link to="/dispute-packet" className="text-sm font-medium transition-colors hover:text-primary">
+            Dispute Packet
+          </Link>
+          <Link to="/dispute-wizard" className="text-sm font-medium transition-colors hover:text-primary">
+            Dispute Wizard
+          </Link>
+          {/* <Link to="/dispute-wizard2" className="text-sm font-medium transition-colors hover:text-primary">
+            Dispute Wizard 2
+          </Link> */}
+          <Link to="/faq" className="text-sm font-medium transition-colors hover:text-primary">
+            FAQ
+          </Link>
+          {/* <Link to="/features" className="text-sm font-medium transition-colors hover:text-primary">
+            Features
+          </Link> */}
+          <Link to="/negative-tradelines" className="text-sm font-medium transition-colors hover:text-primary">
+            Negative Tradelines
+          </Link>
+          <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
+            Pricing
+          </Link>
+          <Link to="/profile" className="text-sm font-medium transition-colors hover:text-primary">
+            Profile
+          </Link>
+          {/* <Link to="/billing" className="text-sm font-medium transition-colors hover:text-primary">
+          </Link> */}
+        </nav>
+
         <div className="flex items-center gap-4">
-          <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
-              Home
-            </Link>
-            <Link to="/features" className="text-sm font-medium transition-colors hover:text-primary">
-              Features
-            </Link>
-            <Link to="/testimonials" className="text-sm font-medium transition-colors hover:text-primary">
-              Testimonials
-            </Link>
-            <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-              Pricing
-            </Link>
-            <Link to="/faq" className="text-sm font-medium transition-colors hover:text-primary">
-              FAQ
-            </Link>
-            <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
-              About
-            </Link>
-            <Link to="/contact" className="text-sm font-medium transition-colors hover:text-primary">
-              Contact
-            </Link>
-          </nav>
-
           <ModeToggle />
-
           {user ? (
-            <Button variant="outline" size="sm" onClick={signOut}>
-              Sign Out
-            </Button>
+            <div className="hidden md:flex items-center gap-2">
+              <Link to="/profile">
+                <Button variant="outline" size="sm">
+                  Profile
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                Sign Out
+              </Button>
+            </div>
           ) : (
             <div className="hidden md:flex items-center gap-2">
               <Link to="/login">
                 <Button variant="outline" size="sm">
-                  Log In
+                  Sign In
                 </Button>
               </Link>
               <Link to="/signup">
@@ -70,60 +104,113 @@ export function Navbar() {
               </Link>
             </div>
           )}
+        </div>
 
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-sm">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-                <SheetDescription>
-                  Explore our site and discover how we can help you.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="grid gap-4 py-4">
-                <Link to="/" className="block text-sm font-medium transition-colors hover:text-primary">
-                  Home
-                </Link>
-                <Link to="/features" className="block text-sm font-medium transition-colors hover:text-primary">
-                  Features
-                </Link>
-                <Link to="/testimonials" className="block text-sm font-medium transition-colors hover:text-primary">
-                  Testimonials
-                </Link>
-                <Link to="/pricing" className="block text-sm font-medium transition-colors hover:text-primary">
-                  Pricing
-                </Link>
-                <Link to="/faq" className="block text-sm font-medium transition-colors hover:text-primary">
-                  FAQ
-                </Link>
-                <Link to="/about" className="block text-sm font-medium transition-colors hover:text-primary">
-                  About
-                </Link>
-                <Link to="/contact" className="block text-sm font-medium transition-colors hover:text-primary">
-                  Contact
-                </Link>
-                {!user ? (
-                  <>
-                    <Link to="/login" className="block text-sm font-medium transition-colors hover:text-primary">
-                      Log In
-                    </Link>
-                    <Link to="/signup" className="block text-sm font-medium transition-colors hover:text-primary">
-                      Sign Up
-                    </Link>
-                  </>
-                ) : (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="sm:max-w-sm">
+            <SheetHeader>
+              <SheetTitle>Menu</SheetTitle>
+              <SheetDescription>
+                Explore our site and discover how we can help you.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-4 py-2">
+              <Link to="/" className="block text-sm font-medium transition-colors hover:text-primary">
+                Home
+              </Link>
+              <Link to="/about" className="block text-sm font-medium transition-colors hover:text-primary">
+                About
+              </Link>
+              <Link to="/admin" className="block text-sm font-medium transition-colors hover:text-primary">
+                Admin
+              </Link>
+              <Link to="/blog" className="block text-sm font-medium transition-colors hover:text-primary">
+                Blog
+              </Link>
+              <Link to="/contact" className="block text-sm font-medium transition-colors hover:text-primary">
+                Contact
+              </Link>
+              <Link to="/credit-reports" className="block text-sm font-medium transition-colors hover:text-primary">
+                Credit Reports
+              </Link>
+              <Link to="/credit-report-upload" className="block text-sm font-medium transition-colors hover:text-primary">
+                Credit Report Upload
+              </Link>
+              <Link to="/dashboard" className="block text-sm font-medium transition-colors hover:text-primary">
+                Dashboard
+              </Link>
+              <Link to="/dispute-letter" className="block text-sm font-medium transition-colors hover:text-primary">
+                Dispute Letter
+              </Link>
+              <Link to="/dispute-packet" className="block text-sm font-medium transition-colors hover:text-primary">
+                Dispute Packet
+              </Link>
+              <Link to="/dispute-wizard2" className="block text-sm font-medium transition-colors hover:text-primary">
+                Dispute Wizard 2
+              </Link>
+              <Link to="/faq" className="block text-sm font-medium transition-colors hover:text-primary">
+                FAQ
+              </Link>
+              <Link to="/features" className="block text-sm font-medium transition-colors hover:text-primary">
+                Features
+              </Link>
+              <Link to="/forgot-password" className="block text-sm font-medium transition-colors hover:text-primary">
+                Forgot Password
+              </Link>
+              <Link to="/login" className="block text-sm font-medium transition-colors hover:text-primary">
+                Login
+              </Link>
+              <Link to="/negative-tradelines" className="block text-sm font-medium transition-colors hover:text-primary">
+                Negative Tradelines
+              </Link>
+              <Link to="/not-found" className="block text-sm font-medium transition-colors hover:text-primary">
+                Not Found
+              </Link>
+              <Link to="/not-found-page" className="block text-sm font-medium transition-colors hover:text-primary">
+                Not Found Page
+              </Link>
+              <Link to="/pricing" className="block text-sm font-medium transition-colors hover:text-primary">
+                Pricing
+              </Link>
+              <Link to="/profile" className="block text-sm font-medium transition-colors hover:text-primary">
+                Profile
+              </Link>
+              <Link to="/reset-password" className="block text-sm font-medium transition-colors hover:text-primary">
+                Reset Password
+              </Link>
+              <Link to="/signup" className="block text-sm font-medium transition-colors hover:text-primary">
+                Sign Up
+              </Link>
+              <Link to="/testimonials" className="block text-sm font-medium transition-colors hover:text-primary">
+                Testimonials
+              </Link>
+              {!user ? (
+                <>
+                  <Link to="/login" className="block text-sm font-medium transition-colors hover:text-primary">
+                    Sign In
+                  </Link>
+                  <Link to="/signup" className="block text-sm font-medium transition-colors hover:text-primary">
+                    Sign Up
+                  </Link>
+                </>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Link to="/profile" className="block text-sm font-medium transition-colors hover:text-primary">
+                    Profile
+                  </Link>
                   <Button variant="outline" size="sm" onClick={signOut}>
                     Sign Out
                   </Button>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );

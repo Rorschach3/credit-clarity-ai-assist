@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth"; // Fixed import path
+import { useAuth } from "@/hooks/use-auth";
 import { FileUploadZone } from "./FileUploadZone";
 import { ScanStatus } from "./ScanStatus";
 import type { NegativeItem } from "@/types/document";

@@ -37,7 +37,7 @@ export function ScanStatus({ status }: ScanStatusProps) {
 
   if (status === 'error') {
     return (
-      <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-100">
+      <div className="mt-4 p-4 bg-[rgba(255,255,255,0.08)] rounded-lg border border-red-100">
         <div className="flex items-center mb-1">
           <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
           <p className="text-sm font-medium text-red-800">Analysis failed</p>

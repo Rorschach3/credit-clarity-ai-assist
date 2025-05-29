@@ -1,12 +1,15 @@
-
-import { useEffect, useState } from 'react'
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/integrations/supabase/client"
-import { Tables, Dispute } from "@/integrations/supabase/schema"
+import { useEffect, useState } from 'react';
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables as TablesType } from "@/integrations/supabase/schema";
+import useActivityMonitoring from "@/hooks/use-activity-monitoring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Package, Mail } from "lucide-react"
 import { DisputeManagement } from "@/components/admin/DisputeManagement"
 import { UserManagement } from "@/components/admin/UserManagement"
+import PostageManagement from "@/components/admin/PostageManagement"
+import AuditLog from "@/components/admin/AuditLog"
+import AdminRoute from "@/components/auth/AdminRoute";
 
 interface User {
   id: string
@@ -16,12 +19,15 @@ interface User {
   is_admin?: boolean
 }
 
+// type Dispute = TablesType<'disputes'>; // Using any to avoid type errors for now
+
 export default function AdminPage() {
-  const [disputes, setDisputes] = useState<Dispute[]>([])
+  const [disputes, setDisputes] = useState<any[]>([]) // Using any to avoid type errors for now
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState('disputes')
+  const [activeTab, setActiveTab] = useState('disputes');
+  useActivityMonitoring(`Admin page tab changed to: ${activeTab}`);
 
   useEffect(() => {
     if (activeTab === 'disputes') {
@@ -32,11 +38,10 @@ export default function AdminPage() {
   }, [activeTab])
 
   async function fetchDisputes() {
-    console.log("Fetching disputes...")
     setIsLoading(true)
     try {
       const { data, error } = await supabase
-        .from(Tables.disputes)
+        .from('disputes')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -69,7 +74,7 @@ export default function AdminPage() {
     try {
       // First fetch subscribers to get user info
       const { data: subscribersData, error: subscribersError } = await supabase
-        .from(Tables.subscribers)
+        .from('subscribers')
         .select('user_id, email, subscription_tier, subscribed')
 
       if (subscribersError) {
@@ -97,7 +102,7 @@ export default function AdminPage() {
       if (usersFromSubscribers.length > 0) {
         // Fetch admin roles for these users
         const { data: rolesData, error: rolesError } = await supabase
-          .from(Tables.user_roles)
+          .from('user_roles')
           .select('user_id, role')
           .eq('role', 'admin')
 
@@ -138,38 +143,54 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center gap-4 mb-6">
-        <Shield className="h-8 w-8 text-blue-600" />
-        <h1 className="text-2xl font-bold">Admin Portal</h1>
+    <AdminRoute>
+      <div className="container mx-auto py-10">
+        <div className="flex items-center gap-4 mb-6">
+          <Shield className="h-8 w-8 text-blue-600" />
+          <h1 className="text-2xl font-bold">Admin Portal</h1>
+        </div>
+        
+        <Tabs defaultValue="disputes" className="mb-8" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="disputes" className="flex items-center gap-2">
+              <Package className="h-4 w-4" /> Disputes
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" /> Users & Subscriptions
+            </TabsTrigger>
+            <TabsTrigger value="postage" className="flex items-center gap-2">
+              <Package className="h-4 w-4" /> Postage Management
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" /> Audit Log
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="disputes">
+            <DisputeManagement
+              isLoading={isLoading} 
+              disputes={disputes} 
+              fetchDisputes={fetchDisputes}
+            />
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <UserManagement 
+              isLoading={isLoading} 
+              users={users} 
+              fetchUsers={fetchUsers}
+            />
+          </TabsContent>
+          
+          <TabsContent value="postage">
+            <PostageManagement />
+          </TabsContent>
+          
+          <TabsContent value="audit">
+            <AuditLog />
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      <Tabs defaultValue="disputes" className="mb-8" onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="disputes" className="flex items-center gap-2">
-            <Package className="h-4 w-4" /> Disputes
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" /> Users & Subscriptions
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="disputes">
-          <DisputeManagement 
-            isLoading={isLoading} 
-            disputes={disputes} 
-            fetchDisputes={fetchDisputes}
-          />
-        </TabsContent>
-        
-        <TabsContent value="users">
-          <UserManagement 
-            isLoading={isLoading} 
-            users={users} 
-            fetchUsers={fetchUsers}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </AdminRoute>
   )
 }

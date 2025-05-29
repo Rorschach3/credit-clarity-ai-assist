@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +7,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { NegativeItem } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/schema";
 import { Loader2, Save, Bot, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { type Bureau, bureauAddresses } from "@/utils/bureau-constants";
 import { Progress } from "@/components/ui/progress";
-import { aiService, GeneratedLetter } from "@/utils/ai-service";
+import { aiService } from "@/utils/ai-service";
 import { DisputeLetterPreview } from "./DisputeLetterPreview";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -25,22 +23,30 @@ interface EnhancedDisputeLetterGeneratorProps {
 // Temporary default user ID until authentication is implemented
 const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
 
-export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo: propPersonalInfo }: EnhancedDisputeLetterGeneratorProps) {
+type LetterState = Record<Bureau, string | null>;
+type QualityState = Record<Bureau, number>;
+type SuggestionsState = Record<Bureau, string[]>;
+
+export function EnhancedDisputeLetterGenerator({
+  items,
+  onComplete,
+  personalInfo: propPersonalInfo
+}: EnhancedDisputeLetterGeneratorProps) {
   const [activeTab, setActiveTab] = useState<Bureau>('Experian');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [letters, setLetters] = useState<Record<Bureau, string | null>>({
+  const [letters, setLetters] = useState<LetterState>({
     'Experian': null,
     'TransUnion': null,
     'Equifax': null
   });
-  const [letterQuality, setLetterQuality] = useState<Record<Bureau, number>>({
+  const [letterQuality, setLetterQuality] = useState<QualityState>({
     'Experian': 0,
     'TransUnion': 0,
     'Equifax': 0
   });
-  const [letterSuggestions, setLetterSuggestions] = useState<Record<Bureau, string[]>>({
+  const [letterSuggestions, setLetterSuggestions] = useState<SuggestionsState>({
     'Experian': [],
     'TransUnion': [],
     'Equifax': []
@@ -53,7 +59,7 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo
   // Get all bureaus represented in the selected items
   const bureaus = Array.from(new Set(
     items.flatMap(item => item.bureaus)
-  )).filter(bureau => 
+  )).filter(bureau =>
     bureau === 'Experian' || bureau === 'TransUnion' || bureau === 'Equifax'
   ) as Bureau[];
 
@@ -63,16 +69,27 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo
       setPersonalInfo(propPersonalInfo);
       return;
     }
-    
+
+    type Profile = {
+      firstName: string;
+      lastName: string;
+      address: string;
+      city: string;
+      state: string;
+      zip: string;
+      phone?: string;
+      email: string;
+      ssnLastFour?: string;
+    };
     const fetchPersonalInfo = async () => {
       if (!user) return;
 
       try {
         const { data, error } = await supabase
-          .from("user_personal_info")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+          .from("profiles")
+          .select("firstName, lastName, address, city, state, zip, phone, email, ssnLastFour")
+          .eq('id', 'ac9f2b0d-d10c-4124-b03c-56215faeb6a6')
+          .single<Profile>();
 
         if (error) {
           console.error("Error fetching personal info:", error);
@@ -80,16 +97,18 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo
         }
 
         if (data) {
-          // Format user data for the letter generation
+          const { firstName, lastName, address, city, state, zip, phone, email, ssnLastFour } = data;
+
           setPersonalInfo({
-            fullName: data.full_name,
-            address: data.address,
-            city: data.city,
-            state: data.state,
-            zip: data.zip,
-            phone: data.phone || undefined,
-            email: data.email,
-            ssnLastFour: data.ssn_last_four || undefined
+            firstName: firstName,
+            lastName: lastName,
+            address: address,
+            city: city,
+            state: state,
+            zip: zip,
+            phone: phone || undefined,
+            email: email,
+            ssnLastFour: ssnLastFour || undefined
           });
         }
       } catch (error) {
@@ -100,81 +119,6 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo
     fetchPersonalInfo();
   }, [user, propPersonalInfo]);
 
-  const generateLetter = async (bureau: Bureau) => {
-    setIsGenerating(true);
-    setGenerationProgress(10);
-    
-    try {
-      // Items to dispute for this bureau
-      const bureauItems = items.filter(item => item.bureaus.includes(bureau));
-      
-      setGenerationProgress(30);
-      
-      // For testing, fallback to defaultLetter if AI service fails
-      try {
-        // Generate the letter content using AI
-        const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, personalInfo);
-        setGenerationProgress(70);
-        
-        // Update the letter and quality score
-        setLetters(prev => ({
-          ...prev,
-          [bureau]: generatedLetter.content
-        }));
-
-        setLetterQuality(prev => ({
-          ...prev,
-          [bureau]: generatedLetter.qualityScore
-        }));
-
-        setLetterSuggestions(prev => ({
-          ...prev,
-          [bureau]: generatedLetter.suggestions
-        }));
-      } catch (error) {
-        console.error("AI letter generation failed, using fallback:", error);
-        
-        // Fallback to template if AI fails
-        const fallbackLetter = generateFallbackLetter(bureauItems, bureau);
-        setLetters(prev => ({
-          ...prev,
-          [bureau]: fallbackLetter
-        }));
-        
-        setLetterQuality(prev => ({
-          ...prev,
-          [bureau]: 75
-        }));
-        
-        setLetterSuggestions(prev => ({
-          ...prev,
-          [bureau]: ["Consider adding more specific dispute reasons"]
-        }));
-        
-        toast({
-          title: "AI Generation Unavailable",
-          description: "Using template letter instead. You can edit it as needed.",
-          variant: "default"
-        });
-      }
-      
-      setGenerationProgress(100);
-      toast({
-        title: "Letter Generated",
-        description: `Dispute letter for ${bureau} has been created successfully.`,
-      });
-    } catch (error) {
-      console.error("Error generating letter:", error);
-      toast({
-        title: "Generation Failed",
-        description: "There was an error creating your dispute letter. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const generateFallbackLetter = (bureauItems: NegativeItem[], bureau: Bureau): string => {
     const currentDate = new Date().toLocaleDateString('en-US', {
       month: 'long',
@@ -183,17 +127,22 @@ export function EnhancedDisputeLetterGenerator({ items, onComplete, personalInfo
     });
 
     const userInfo = personalInfo || {};
-    
-    const fullName = userInfo.fullName || '[YOUR NAME]';
+
+    const firstName = userInfo.firstName || '[YOUR FIRST NAME]';
+    const lastName = userInfo.lastName || '[YOUR LAST NAME]';
     const address = userInfo.address || '[YOUR ADDRESS]';
     const city = userInfo.city || '[YOUR CITY]';
     const state = userInfo.state || '[YOUR STATE]';
     const zip = userInfo.zip || '[YOUR ZIP]';
     const ssnLastFour = userInfo.ssnLastFour || '[LAST 4 SSN DIGITS]';
-    
+
     const fullAddress = `${address}, ${city}, ${state} ${zip}`;
 
     return `${currentDate}
+
+${firstName} ${lastName}
+${address}
+${city}, ${state} ${zip}
 
 ${bureauAddresses[bureau]}
 
@@ -217,36 +166,76 @@ Please send me notification of the results of your investigation.
 
 Sincerely,
 
-${fullName}
-${fullAddress}
-Phone: ${userInfo.phone || '[YOUR PHONE]'}
-Email: ${userInfo.email || '[YOUR EMAIL]'}
-Last 4 SSN: ${ssnLastFour}`;
+${firstName} ${lastName}`;
+  };
+
+  const generateLetter = async (bureau: Bureau) => {
+    setIsGenerating(true);
+    setGenerationProgress(10);
+
+    try {
+      // Items to dispute for this bureau
+      const bureauItems = items.filter(item => item.bureaus.includes(bureau));
+      setGenerationProgress(30);
+
+      try {
+        // Generate the letter content using AI
+        const generatedLetter = await aiService.generateDisputeLetter(bureauItems, bureau, personalInfo);
+        setGenerationProgress(70);
+
+        // Update state with the generated letter
+        setLetters(prev => ({ ...prev, [bureau]: generatedLetter.content }));
+        setLetterQuality(prev => ({ ...prev, [bureau]: generatedLetter.qualityScore }));
+        setLetterSuggestions(prev => ({ ...prev, [bureau]: generatedLetter.suggestions }));
+      } catch (error) {
+        console.error("AI letter generation failed, using fallback:", error);
+
+        // Fallback to template if AI fails
+        const fallbackLetter = generateFallbackLetter(bureauItems, bureau);
+
+        setLetters(prev => ({ ...prev, [bureau]: fallbackLetter }));
+        setLetterQuality(prev => ({ ...prev, [bureau]: 75 }));
+        setLetterSuggestions(prev => ({
+          ...prev,
+          [bureau]: ["Consider adding more specific dispute reasons"]
+        }));
+
+        toast({
+          title: "AI Generation Unavailable",
+          description: "Using template letter instead. You can edit it as needed.",
+          variant: "default"
+        });
+      }
+
+      setGenerationProgress(100);
+      toast({
+        title: "Letter Generated",
+        description: `Dispute letter for ${bureau} has been created successfully.`,
+      });
+    } catch (error) {
+      console.error("Error generating letter:", error);
+      toast({
+        title: "Generation Failed",
+        description: "There was an error creating your dispute letter. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const reviewLetter = async (bureau: Bureau) => {
     if (!letters[bureau]) return;
-    
+
     setIsReviewing(true);
-    
+
     try {
       try {
         const reviewedLetter = await aiService.reviewDisputeLetter(letters[bureau]!, bureau);
-        
-        setLetters(prev => ({
-          ...prev,
-          [bureau]: reviewedLetter.content
-        }));
-        
-        setLetterQuality(prev => ({
-          ...prev,
-          [bureau]: reviewedLetter.qualityScore
-        }));
-        
-        setLetterSuggestions(prev => ({
-          ...prev,
-          [bureau]: reviewedLetter.suggestions
-        }));
+
+        setLetters(prev => ({ ...prev, [bureau]: reviewedLetter.content }));
+        setLetterQuality(prev => ({ ...prev, [bureau]: reviewedLetter.qualityScore }));
+        setLetterSuggestions(prev => ({ ...prev, [bureau]: reviewedLetter.suggestions }));
       } catch (error) {
         console.error("AI letter review failed:", error);
         toast({
@@ -255,7 +244,7 @@ Last 4 SSN: ${ssnLastFour}`;
           variant: "default"
         });
       }
-      
+
       toast({
         title: "Letter Review Complete",
         description: "Your dispute letter has been reviewed and optimized.",
@@ -274,14 +263,14 @@ Last 4 SSN: ${ssnLastFour}`;
 
   const saveDisputes = async () => {
     setIsSaving(true);
-    
+
     try {
       const promises = bureaus.map(async (bureau) => {
         const letter = letters[bureau];
         if (!letter) return null;
-        
+
         const { data, error } = await supabase
-          .from(Tables.disputes)
+          .from('disputes')
           .insert({
             credit_bureau: bureau,
             mailing_address: bureauAddresses[bureau],
@@ -290,18 +279,18 @@ Last 4 SSN: ${ssnLastFour}`;
             user_id: user?.id || TEMP_USER_ID
           })
           .select();
-        
+
         if (error) throw error;
         return data;
       });
-      
+
       await Promise.all(promises);
-      
+
       toast({
         title: "Disputes Saved",
         description: "Your dispute letters have been saved successfully.",
       });
-      
+
       onComplete();
     } catch (error) {
       console.error("Error saving disputes:", error);
@@ -319,6 +308,87 @@ Last 4 SSN: ${ssnLastFour}`;
     if (score >= 90) return 'text-green-700 bg-green-100';
     if (score >= 75) return 'text-yellow-700 bg-yellow-100';
     return 'text-red-700 bg-red-100';
+  };
+
+  const renderLetterContent = (bureau: Bureau) => {
+    if (!letters[bureau]) {
+      return (
+        <div className="text-center py-8">
+          {isGenerating && activeTab === bureau ? (
+            <div className="space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <div>
+                <p className="font-medium">Generating your dispute letter</p>
+                <p className="text-sm text-muted-foreground">
+                  Creating a personalized letter for {bureau}
+                </p>
+              </div>
+              <Progress value={generationProgress} className="w-64 mx-auto" />
+            </div>
+          ) : (
+            <>
+              <Button onClick={() => generateLetter(bureau)}>
+                <Bot className="mr-2 h-4 w-4" />
+                Generate {bureau} Letter
+              </Button>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Click to create an optimized dispute letter
+              </p>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {letterQuality[bureau] > 0 && (
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`px-2 py-1 rounded text-xs font-medium flex items-center ${getQualityColor(letterQuality[bureau])}`}>
+              {letterQuality[bureau] >= 90 ? (
+                <CheckCircle className="h-3 w-3 mr-1" />
+              ) : (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
+              Quality Score: {letterQuality[bureau]}%
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => reviewLetter(bureau)}
+              disabled={isReviewing}
+            >
+              {isReviewing ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3 mr-1" />
+              )}
+              Review & Improve
+            </Button>
+          </div>
+        )}
+
+        {letterSuggestions[bureau]?.length > 0 && (
+          <Alert className="bg-yellow-50 border-yellow-200 mb-3">
+            <div className="flex flex-col gap-1">
+              <p className="font-medium text-yellow-800">AI Suggestions:</p>
+              <ul className="text-sm list-disc pl-5">
+                {letterSuggestions[bureau].map((suggestion, idx) => (
+                  <li key={idx} className="text-yellow-800">{suggestion}</li>
+                ))}
+              </ul>
+            </div>
+          </Alert>
+        )}
+
+        <DisputeLetterPreview
+          letterContent={letters[bureau]!}
+          bureau={bureau}
+        />
+      </div>
+    );
   };
 
   return (
@@ -346,7 +416,7 @@ Last 4 SSN: ${ssnLastFour}`;
         ) : (
           <>
             <div className="flex justify-between items-center mb-4">
-              <Button 
+              <Button
                 onClick={saveDisputes}
                 disabled={isSaving || bureaus.some(bureau => !letters[bureau])}
               >
@@ -363,23 +433,25 @@ Last 4 SSN: ${ssnLastFour}`;
                 )}
               </Button>
             </div>
-            
+
             {!personalInfo && (
               <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
                 <AlertDescription>
-                  We're using default personal information in your letter. For a more personalized letter, 
+                  We're using default personal information in your letter. For a more personalized letter,
                   please go back and complete your personal information.
                 </AlertDescription>
               </Alert>
             )}
-            
+
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Bureau)} className="w-full">
               <TabsList className="grid" style={{ gridTemplateColumns: `repeat(${bureaus.length}, 1fr)` }}>
                 {bureaus.map(bureau => (
                   <TabsTrigger key={bureau} value={bureau} className="flex items-center gap-1">
                     {bureau}
                     {letterQuality[bureau] > 0 && (
-                      <span className={`ml-2 ${getQualityColor(letterQuality[bureau])}`}>{letterQuality[bureau]}%</span>
+                      <span className={`ml-2 ${getQualityColor(letterQuality[bureau])}`}>
+                        {letterQuality[bureau]}%
+                      </span>
                     )}
                   </TabsTrigger>
                 ))}
@@ -387,82 +459,7 @@ Last 4 SSN: ${ssnLastFour}`;
 
               {bureaus.map(bureau => (
                 <TabsContent key={bureau} value={bureau} className="space-y-4">
-                  {!letters[bureau] ? (
-                    <div className="text-center py-8">
-                      {isGenerating && activeTab === bureau ? (
-                        <div className="space-y-4">
-                          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                          <div>
-                            <p className="font-medium">Generating your dispute letter</p>
-                            <p className="text-sm text-muted-foreground">
-                              Creating a personalized letter for {bureau}
-                            </p>
-                          </div>
-                          <Progress value={generationProgress} className="w-64 mx-auto" />
-                        </div>
-                      ) : (
-                        <>
-                          <Button onClick={() => generateLetter(bureau)}>
-                            <Bot className="mr-2 h-4 w-4" />
-                            Generate {bureau} Letter
-                          </Button>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            Click to create an optimized dispute letter
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {letterQuality[bureau] > 0 && (
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className={`px-2 py-1 rounded text-xs font-medium flex items-center ${getQualityColor(letterQuality[bureau])}`}>
-                            {letterQuality[bureau] >= 90 ? (
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                            ) : letterQuality[bureau] >= 75 ? (
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                            ) : (
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                            )}
-                            Quality Score: {letterQuality[bureau]}%
-                          </div>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs h-7 px-2"
-                            onClick={() => reviewLetter(bureau)}
-                            disabled={isReviewing}
-                          >
-                            {isReviewing ? (
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                            )}
-                            Review & Improve
-                          </Button>
-                        </div>
-                      )}
-
-                      {letterSuggestions[bureau] && letterSuggestions[bureau].length > 0 && (
-                        <Alert className="bg-yellow-50 border-yellow-200 mb-3">
-                          <div className="flex flex-col gap-1">
-                            <p className="font-medium text-yellow-800">AI Suggestions:</p>
-                            <ul className="text-sm list-disc pl-5">
-                              {letterSuggestions[bureau].map((suggestion, idx) => (
-                                <li key={idx} className="text-yellow-800">{suggestion}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </Alert>
-                      )}
-
-                      <DisputeLetterPreview 
-                        letterContent={letters[bureau]!} 
-                        bureau={bureau}
-                      />
-                    </div>
-                  )}
+                  {renderLetterContent(bureau)}
                 </TabsContent>
               ))}
             </Tabs>

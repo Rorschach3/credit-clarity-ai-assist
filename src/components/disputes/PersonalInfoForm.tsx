@@ -21,7 +21,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 // Form schema with validation
 const personalInfoSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
@@ -34,7 +35,7 @@ const personalInfoSchema = z.object({
 type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
 
 interface PersonalInfoFormProps {
-  onComplete?: (info?: any) => void;
+  onComplete?: (info?: PersonalInfoFormValues) => void;
 }
 
 export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
@@ -46,7 +47,8 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
   const form = useForm<PersonalInfoFormValues>({
     resolver: zodResolver(personalInfoSchema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      lastName: "",
       address: "",
       city: "",
       state: "",
@@ -64,9 +66,9 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
 
       try {
         const { data, error } = await supabase
-          .from("user_personal_info")
-          .select("*")
-          .eq("user_id", user.id)
+          .from("profiles")
+          .select("first_name, last_name, address, city, state, zip, phone, email, ssnLastFour")
+          .eq("id", user.id)
           .single();
 
         if (error) {
@@ -75,27 +77,30 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
         }
 
         if (data) {
+
           setExistingInfo({
-            fullName: data.full_name,
-            address: data.address,
-            city: data.city,
-            state: data.state,
-            zip: data.zip,
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            address: data.address || "",
+            city: data.city || "",
+            state: data.state || "",
+            zip: data.zip || "",
             phone: data.phone || "",
-            email: data.email,
-            ssnLastFour: data.ssn_last_four || "",
+            email: data.email || "",
+            ssnLastFour: data.ssnLastFour || "",
           });
 
           // Populate form with existing data
           form.reset({
-            fullName: data.full_name,
-            address: data.address,
-            city: data.city,
-            state: data.state,
-            zip: data.zip,
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            address: data.address || "",
+            city: data.city || "",
+            state: data.state || "",
+            zip: data.zip || "",
             phone: data.phone || "",
-            email: data.email,
-            ssnLastFour: data.ssn_last_four || "",
+            email: data.email || "",
+            ssnLastFour: data.ssnLastFour || "",
           });
         }
       } catch (error) {
@@ -107,6 +112,8 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
   }, [user, form]);
 
   const onSubmit = async (values: PersonalInfoFormValues) => {
+    console.log("onSubmit called with values:", values);
+    console.log("Current user:", user);
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -120,15 +127,15 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
 
     try {
       const personalInfo = {
-        user_id: user.id,
-        full_name: values.fullName,
+        firstName: values.firstName,
+        lastName: values.lastName,
         address: values.address,
         city: values.city,
         state: values.state,
         zip: values.zip,
         phone: values.phone,
         email: values.email,
-        ssn_last_four: values.ssnLastFour,
+        ssnLastFour: values.ssnLastFour,
         updated_at: new Date().toISOString() // Convert Date to string
       };
 
@@ -136,17 +143,21 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
       if (existingInfo) {
         // Update existing record
         operation = supabase
-          .from("user_personal_info")
+          .from("profiles")
           .update(personalInfo)
-          .eq("user_id", user.id);
+          .eq("id", user.id);
       } else {
         // Insert new record
+        // Note: Supabase profiles table typically has a row created on user signup
+        // so update is more common here. If insert is truly needed, ensure it aligns
+        // with Supabase auth triggers.
         operation = supabase
-          .from("user_personal_info")
+          .from("profiles")
           .insert([personalInfo]); // Pass as array for insert operation
       }
 
       const { error } = await operation;
+      console.log("Supabase operation error:", error);
 
       if (error) {
         throw error;
@@ -186,12 +197,25 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name *</FormLabel>
+                    <FormLabel>First Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

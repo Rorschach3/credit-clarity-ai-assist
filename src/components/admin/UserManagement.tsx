@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { UserRole, Tables } from "@/integrations/supabase/schema"
+import { Users } from "@/integrations/supabase/schema"
 import {
   Table,
   TableBody,
@@ -22,6 +22,8 @@ interface User {
   subscription_tier?: string
   active?: boolean
   is_admin?: boolean
+  tfa_enabled?: boolean
+  last_login?: string
 }
 
 interface UserManagementProps {
@@ -40,7 +42,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
       
       // Check if user already has an entry in user_roles
       const { data: existingRole } = await supabase
-        .from(Tables.user_roles)
+        .from('user_roles')
         .select('*')
         .eq('user_id', userId)
         .eq('role', 'admin')
@@ -48,12 +50,38 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
 
       if (!existingRole) {
         // Add user to admin role
+        // First check if 2FA is enabled
+        const { data: securitySettings } = await supabase
+          .from('user_security_settings')
+          .select('tfa_enabled')
+          .eq('user_id', userId)
+          .single()
+
+        if (!securitySettings?.tfa_enabled) {
+          toast({
+            title: "2FA Required",
+            description: "Admin access requires two-factor authentication",
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Add user to admin role
         const { error } = await supabase
-          .from(Tables.user_roles)
+          .from('user_roles')
           .insert({
             user_id: userId,
             role: 'admin'
-          } as UserRole)
+          } as Users)
+
+        // Log admin access grant
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: userId,
+            action: 'admin_access_granted',
+            details: { granted_by: supabase.auth.user()?.id }
+          })
 
         if (error) {
           console.error("Error granting admin access:", error)
@@ -73,7 +101,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
 
       // Refresh users list
       fetchUsers()
-    } catch (error: any) {
+    } catch (error: SupabaseError) {
       console.error("Error in grantAdminAccess:", error)
       toast({
         title: "Error",
@@ -89,8 +117,17 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
     try {
       setProcessingUsers(prev => ({ ...prev, [userId]: true }))
       
+      // Log admin access revocation
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          action: 'admin_access_revoked',
+          details: { revoked_by: supabase.auth.user()?.id }
+        })
+
       const { error } = await supabase
-        .from(Tables.user_roles)
+        .from('user_roles')
         .delete()
         .eq('user_id', userId)
         .eq('role', 'admin')
@@ -107,7 +144,7 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
 
       // Refresh users list
       fetchUsers()
-    } catch (error: any) {
+    } catch (error: SupabaseError) {
       console.error("Error in revokeAdminAccess:", error)
       toast({
         title: "Error",
@@ -133,7 +170,9 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
                 <TableHead>Email</TableHead>
                 <TableHead>Subscription</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>2FA</TableHead>
                 <TableHead>Admin</TableHead>
+                <TableHead>Last Login</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -152,10 +191,20 @@ export function UserManagement({ isLoading, users, fetchUsers }: UserManagementP
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.subscription_tier || 'None'}</TableCell>
                     <TableCell>
+                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                    </TableCell>
+                    <TableCell>
                       {user.active ? (
                         <Badge className="bg-green-500 text-white">Active</Badge>
                       ) : (
                         <Badge variant="outline">Inactive</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.tfa_enabled ? (
+                        <Badge className="bg-green-500 text-white">Enabled</Badge>
+                      ) : (
+                        <Badge variant="outline">Disabled</Badge>
                       )}
                     </TableCell>
                     <TableCell>

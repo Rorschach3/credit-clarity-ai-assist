@@ -27,7 +27,7 @@ serve(async (req) => {
     console.log(`Analyzing credit report with ${extractedText.structuredData.accounts.length} accounts`);
     
     // Send the data to OpenAI for analysis
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiResponse = await fetch('https://api.openai.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
