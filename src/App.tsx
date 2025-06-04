@@ -1,4 +1,3 @@
-import NegativeTradelinesPage from "@/pages/NegativeTradelinesPage";
 import {
   BrowserRouter as Router,
   Route,
@@ -7,7 +6,6 @@ import {
 import { ThemeProvider } from "@/components/theme-provider"
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import MainLayout from "@/components/layout/MainLayout";
-import Index from "@/pages/Index";
 import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/DashboardPage";
 import LoginPage from "@/pages/LoginPage";
@@ -23,11 +21,11 @@ import AdminRoute from "@/components/auth/AdminRoute";
 import AdminPage from "@/pages/AdminPage";
 import FeaturesPage from "@/pages/FeaturesPage";
 import TestimonialsPage from "@/pages/TestimonialsPage";
+import TradelinesPage from "@/pages/TradelinesPage";
 import ProfilePage from "@/pages/ProfilePage";
 import { Toaster } from "@/components/ui/toaster";
 import BlogPage from "@/pages/BlogPage";
 import BlogPost from "@/components/BlogPost";
-import CreditReportsPage from "@/pages/CreditReportsPage";
 import CreditReportUploadPage from "@/pages/CreditReportUploadPage";
 import DisputeLetterPage from "@/pages/DisputeLetterPage";
 import DisputePacketPage from "@/pages/DisputePacketPage";
@@ -59,8 +57,9 @@ function InnerApp({ theme }: { theme: string }) {
     >
       <Router>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -74,9 +73,7 @@ function InnerApp({ theme }: { theme: string }) {
           <Route path="/credit-report-upload" element={<CreditReportUploadPage />} />
           <Route path="/dispute-letter" element={<DisputeLetterPage />} />
           <Route path="/dispute-packet" element={<DisputePacketPage />} />
-          <Route path="/credit-reports" element={<CreditReportsPage />} />
-          <Route path="/reports" element={<CreditReportsPage />} />
-          <Route path="/negative-tradelines" element={<MainLayout><NegativeTradelinesPage /></MainLayout>} />
+          <Route path="/tradelines" element={<MainLayout><TradelinesPage /></MainLayout>} />
           <Route
             path="/admin"
             element={

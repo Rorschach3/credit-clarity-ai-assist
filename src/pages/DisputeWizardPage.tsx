@@ -7,14 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { pdfToImages } from "@/utils/pdfToImage";
 import { useAuth } from "@/hooks/use-auth";
 import { aiService } from "@/utils/ai-service";
 import { saveTradelinesToDatabase, parseTradelinesFromText, ParsedTradeline } from "@/utils/tradelineParser";
 
-import { UserDocumentsSection } from "@/components/disputes/UserDocumentsSection";
 import { MailingInstructions } from "@/components/disputes/MailingInstructions";
 import { DocumentUploadSection } from "@/components/disputes/DocumentUploadSection";
 import { LetterEditor } from "@/components/disputes/LetterEditor";
@@ -80,7 +78,7 @@ const DisputeWizardPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
+    <main className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
       <Card className="max-w-6xl mx-auto space-y-6">
         <CardHeader>
           <CardTitle className="text-2xl">Dispute Wizard</CardTitle>
@@ -90,11 +88,8 @@ const DisputeWizardPage = () => {
           <Input id="pdf-upload" type="file" accept="application/pdf" onChange={handleFileUpload} disabled={isUploading} />
           {isUploading && <Progress value={uploadProgress} className="w-full" />}
 
-          {/* New TradelineGrid for visual comparison */}
-          {/* NOTE: tradelines must include credit_bureau for this to work */}
           <TradelineGrid tradelines={groupTradelinesByAccount(tradelines as BureauTradeline[])} />
 
-          {/* Old TradelineList for selection/dispute (can be removed after migration) */}
           <TradelineList
             tradelines={tradelines}
             selected={selectedTradelines}
@@ -116,15 +111,9 @@ const DisputeWizardPage = () => {
 
           {showDocsSection && <DocumentUploadSection onClose={() => setShowDocsSection(false)} />}
           {manualModalOpen && <ManualTradelineModal onClose={() => setManualModalOpen(false)} onAdd={t => setTradelines([...tradelines, t])} />}
-
-          {/* Removed duplicate UserDocumentsSection to avoid duplicate upload UI and Skip button */}
-          {/* <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-2">Upload Supporting Documents</h3>
-            <UserDocumentsSection />
-          </div> */}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 };
 

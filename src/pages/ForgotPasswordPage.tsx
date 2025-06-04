@@ -1,4 +1,5 @@
 
+import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,10 @@ export default function ForgotPasswordPage() {
   };
 
   return (
+   <MainLayout>
     <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
+     <Card className="w-full max-w-md">
+      <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Forgot Password</CardTitle>
           <CardDescription className="text-center">
             Enter your email to receive a password reset link
@@ -83,5 +85,6 @@ export default function ForgotPasswordPage() {
         </CardFooter>
       </Card>
     </div>
+   </MainLayout>
   );
 }

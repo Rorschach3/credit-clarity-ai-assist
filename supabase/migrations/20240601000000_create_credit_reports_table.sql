@@ -5,7 +5,7 @@ CREATE TABLE credit_reports (
     encrypted_content BYTEA NOT NULL,
     encryption_key_id TEXT NOT NULL,
     report_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ GENERATED ALWAYS AS (report_date + INTERVAL '90 days') STORED
+    expires_at TIMESTAMPTZ NOT NULL
 );
 
 COMMENT ON TABLE credit_reports IS 'FCRA-compliant credit report storage';

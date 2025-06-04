@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { pdfToImages } from "@/utils/pdfToImage";
 import { useAuth } from "@/hooks/use-auth";
+import MainLayout from "@/components/layout/MainLayout";
 import {
   saveTradelinesToDatabase,
   parseTradelinesFromText,
@@ -88,9 +89,10 @@ const CreditReportUploadPage = () => {
   };
 
   return (
+   <MainLayout>
     <div className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
-      <Card className="max-w-6xl mx-auto space-y-6">
-        <CardHeader>
+     <Card className="max-w-6xl mx-auto space-y-6">
+      <CardHeader>
           <CardTitle className="text-2xl">Step 1: Upload or Add Tradelines</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -187,6 +189,7 @@ const CreditReportUploadPage = () => {
         </CardContent>
       </Card>
     </div>
+   </MainLayout>
   );
 };
 

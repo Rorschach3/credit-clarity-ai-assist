@@ -31,30 +31,52 @@ export const LetterEditor: React.FC<LetterEditorProps> = ({
   const [isGenerating, setIsGenerating] = React.useState(false);
 
   const generateLetter = async () => {
-    if (!userInfo.name || !userInfo.address || selectedTradelines.length === 0) {
-      toast({ title: "Missing Info", description: "Please complete your info and select at least one tradeline." });
+    const { name, address, city, state, zip } = userInfo;
+
+    if (!name || !address || !city || !state || !zip || selectedTradelines.length === 0) {
+      toast({
+        title: "Missing Info",
+        description: "Please complete your info and select at least one tradeline.",
+        variant: "destructive",
+      });
       return;
     }
 
     const itemText = selectedTradelines
       .map(
-        (t, i) => `Item ${i + 1}: ${t.creditorName}\nAccount Number: ${t.accountNumber}\nReason: ${t.negativeReason || "This item is inaccurate or does not belong to me."}`
+        (t, i) =>
+          `Item ${i + 1}: ${t.creditorName}\nAccount Number: ${t.accountNumber}\nReason: ${
+            t.negativeReason || "This item is inaccurate or does not belong to me."
+          }`
       )
       .join("\n\n");
 
-    const prompt = `You are an expert credit dispute letter writer. Generate a professional, compliant, and persuasive dispute letter for the following user and tradelines. Use a respectful tone, reference FCRA Section 611, and include all necessary compliance language.\n\nFirst Name: ${userInfo.first_name}\nLast Name: ${userInfo.last_name}\nUser Address: ${userInfo.address}\nCity: ${userInfo.city}\nState: ${userInfo.state}\nZip: ${userInfo.zip}\n\nTradelines to Dispute:\n${itemText}`;
+    const prompt = `You are an expert credit dispute letter writer. Generate a professional, compliant, and persuasive dispute letter for the following user and tradelines. Use a respectful tone, reference FCRA Section 611, and include all necessary compliance language.\n\nName: ${name}\nAddress: ${address}\nCity: ${city}\nState: ${state}\nZip: ${zip}\n\nTradelines to Dispute:\n${itemText}`;
 
     setIsGenerating(true);
     setLetter("Generating letter...");
     try {
-      const aiLetter = await aiService.chatCompletion([
-        { role: "system", content: "You are a credit expert and legal writer who drafts formal, persuasive, and FCRA-compliant dispute letters based on consumer credit reports." },
-        { role: "user", content: prompt },
-      ], "gpt-3.5-turbo-16k", 512);
+      const aiLetter = await aiService.chatCompletion(
+        [
+          {
+            role: "system",
+            content:
+              "You are a credit expert and legal writer who drafts formal, persuasive, and FCRA-compliant dispute letters based on consumer credit reports.",
+          },
+          { role: "user", content: prompt },
+        ],
+        "gpt-3.5-turbo-16k",
+        512
+      );
       setLetter(aiLetter.trim());
     } catch (err) {
-      toast({ title: "AI Error", description: "Using fallback template." });
-      const fallback = `${userInfo.name}\n${userInfo.address}\n${userInfo.city}, ${userInfo.state} ${userInfo.zip}\n\nTo Whom It May Concern,\n\nI am formally disputing the following items from my credit report:\n\n${itemText}\n\nUnder the Fair Credit Reporting Act (FCRA), Section 611, I request a thorough investigation within 30 days. Please correct or remove any inaccurate information and send me an updated report.\n\nSincerely,\n${userInfo.name}`.trim();
+      toast({
+        title: "AI Error",
+        description: "Using fallback template instead.",
+        variant: "destructive",
+      });
+
+      const fallback = `${name}\n${address}\n${city}, ${state} ${zip}\n\nTo Whom It May Concern,\n\nI am formally disputing the following items from my credit report:\n\n${itemText}\n\nUnder the Fair Credit Reporting Act (FCRA), Section 611, I request a thorough investigation within 30 days. Please correct or remove any inaccurate information and send me an updated report.\n\nSincerely,\n${name}`;
       setLetter(fallback);
     } finally {
       setIsGenerating(false);
@@ -96,8 +118,11 @@ export const LetterEditor: React.FC<LetterEditorProps> = ({
       >
         {isGenerating ? "Generating..." : "Generate Letter"}
       </Button>
+
       {isGenerating && (
-        <div className="text-sm text-muted-foreground">Generating your letter, please wait...</div>
+        <div className="text-sm text-muted-foreground">
+          Generating your letter, please wait...
+        </div>
       )}
 
       {letter && (
@@ -109,9 +134,15 @@ export const LetterEditor: React.FC<LetterEditorProps> = ({
             className="font-mono"
           />
           <div className="flex gap-2">
-            <Button onClick={handleDownload} variant="outline">Download</Button>
-            <Button onClick={handlePrint} variant="outline">Print</Button>
-            <Button onClick={() => setShowDocsSection(true)} variant="default">Add Identity Docs & Prepare Packet</Button>
+            <Button onClick={handleDownload} variant="outline">
+              Download
+            </Button>
+            <Button onClick={handlePrint} variant="outline">
+              Print
+            </Button>
+            <Button onClick={() => setShowDocsSection(true)}>
+              Add Identity Docs & Prepare Packet
+            </Button>
           </div>
         </>
       )}

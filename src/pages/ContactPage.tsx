@@ -1,4 +1,5 @@
 
+import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,9 +41,10 @@ export default function ContactPage() {
   };
 
   return (
+   <MainLayout>
     <div className="py-16 px-4 container">
-      <div className="max-w-3xl mx-auto text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
+     <div className="max-w-3xl mx-auto text-center mb-12">
+      <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
         <p className="text-xl text-gray-600">
           Have questions or need help? We're here for you.
         </p>
@@ -199,5 +201,6 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+   </MainLayout>
   );
 }

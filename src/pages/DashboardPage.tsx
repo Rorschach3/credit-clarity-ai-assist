@@ -1,3 +1,4 @@
+import MainLayout from "@/components/layout/MainLayout"
 import { Navbar } from "../components/layout/Navbar"
 import { Overview } from "../components/dashboard/Overview"
 import { RecentActivity } from "../components/dashboard/RecentActivity"
@@ -18,8 +19,8 @@ const Dashboard = () => {
   })
 
   return (
+   <MainLayout>
     <div className="min-h-screen bg-[#0f111a] text-white flex flex-col">
-      <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto px-6 md:px-8 py-10 space-y-8">
         <div>
@@ -27,11 +28,11 @@ const Dashboard = () => {
 
           <Tabs defaultValue="overview">
             <TabsList className="bg-[#1e2235] rounded-md flex flex-wrap gap-2 p-2 mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="uploadReports">Upload Reports</TabsTrigger>
-              <TabsTrigger value="disputeLetters">Dispute Letters</TabsTrigger>
-              <TabsTrigger value="progressTracking">Progress Tracking</TabsTrigger>
-              <TabsTrigger value="disputeLetterGenerator" onClick={() => navigate('/dispute-wizard')}>Dispute Letter Generator</TabsTrigger>
+              <TabsTrigger value="/src/pages/DashboardPage.tsx">Overview</TabsTrigger>
+              <TabsTrigger value="/src/pages/CreditReportUploadPage.tsx">Upload Credit Reports</TabsTrigger>
+              <TabsTrigger value="/src/pages/NegativeTradelinesPage.tsx">Tradelines</TabsTrigger>
+              <TabsTrigger value="/src/pages/DisputeLetterGeneratorPage.tsx">Dispute Letter Generator</TabsTrigger>
+              <TabsTrigger value="/src/components/disputes/DisputeLetterGenerator.tsx" onClick={() => navigate('/dispute-wizard')}>Dispute Letter Generator</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -98,6 +99,7 @@ const Dashboard = () => {
         </div>
       </footer>
     </div>
+   </MainLayout>
   )
 }
 

@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/use-auth";
 import { ParsedTradeline, fetchUserTradelines } from "@/utils/tradelineParser";
 import { UserInfoForm } from "@/components/disputes/UserInfoForm";
-import { LetterEditor } from "@/components/disputes/LetterEditor";
+import {LetterEditor} from "@/components/disputes/LetterEditor";
 import { TradelineList } from "@/components/disputes/TradelineList";
 
 const DisputeLetterPage = () => {
@@ -63,9 +64,10 @@ const DisputeLetterPage = () => {
   const negativeTradelines = tradelines.filter((t) => t.isNegative);
 
   return (
+   <MainLayout>
     <div className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
-      <Card className="max-w-6xl mx-auto space-y-6">
-        <CardHeader>
+     <Card className="max-w-6xl mx-auto space-y-6">
+      <CardHeader>
           <CardTitle className="text-2xl">Step 2: Draft Dispute Letter</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -100,6 +102,7 @@ const DisputeLetterPage = () => {
         </CardContent>
       </Card>
     </div>
+   </MainLayout>
   );
 };
 

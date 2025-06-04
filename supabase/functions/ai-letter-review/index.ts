@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +16,7 @@ serve(async (req) => {
     // Get environment variables
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
+     console.error("Missing OpenAI API key");
       throw new Error('Missing OpenAI API key');
     }
     

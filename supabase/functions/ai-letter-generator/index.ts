@@ -1,13 +1,9 @@
-// src/functions/ai-letter-generator/index.ts
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 
-dotenv.config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface UserData {
   firstName?: string;
@@ -33,27 +29,19 @@ interface CreditReportItem {
   reason?: string;
 }
 
-const PORT = process.env.PORT || 3000;
-
-app.options("/", (_req, res) => {
-  res.set({
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
-  });
-  res.sendStatus(204);
-});
-
-app.post("/", async (req, res) => {
-  res.set({
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
-  });
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    const openaiApiKey = process.env.VITE_OPENAI_API_KEY;
-    if (!openaiApiKey) throw new Error("Missing OpenAI API key");
+    const openaiApiKey = Deno.env.get('VITE_OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      console.error("Missing OpenAI API key");
+      throw new Error('Missing OpenAI API key');
+    }
 
-    const { items, bureau, userData, disputeType, language = "en", tone = "formal" } = req.body;
+    const { items, bureau, userData, disputeType, language = "en", tone = "formal" } = await req.json();
     if (!items || !items.length || !bureau || !disputeType) {
       throw new Error("Missing required parameters: items, bureau, and disputeType");
     }
@@ -103,11 +91,11 @@ app.post("/", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert at writing effective credit dispute letters under the Fair Credit Reporting Act (FCRA), FDCPA, and FACTA...`
+            content: `You are an expert at writing effective credit dispute letters under the Fair Credit Reporting Act (FCRA), FDCPA, and FACTA.`
           },
           {
             role: "user",
-            content: `Generate a credit dispute letter to ${bureau} at their address: ${bureauAddress}...`
+            content: `Generate a credit dispute letter to ${bureau} at their address: ${bureauAddress} for the following items:\n\n${itemsText}\n\nUse a ${tone} tone and write in ${language}.`
           }
         ],
         max_tokens: 2048
@@ -129,14 +117,17 @@ app.post("/", async (req, res) => {
     if (!letterContent.toLowerCase().includes("30 day") && !letterContent.toLowerCase().includes("30-day")) suggestions.push("Mention the 30-day investigation requirement");
     if (!letterContent.toLowerCase().includes("id") || !letterContent.toLowerCase().includes("social security") || !letterContent.toLowerCase().includes("utility bill")) suggestions.push("Mention that you're including copies of your ID, SSN card, and utility bill");
 
-    res.status(200).json({ content: letterContent, qualityScore, suggestions, userData: userInfo });
-  } catch (error: unknown) {
+    return new Response(JSON.stringify({ content: letterContent, qualityScore, suggestions, userData: userInfo }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+
+  } catch (error) {
     console.error("Error in AI letter generation:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: errorMessage || "Unknown error in letter generation" });
+    return new Response(JSON.stringify({ error: errorMessage || "Unknown error in letter generation" }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`AI letter generator running on http://localhost:${PORT}`);
 });

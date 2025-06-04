@@ -30,33 +30,33 @@ export function Navbar() {
           <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
             Home
           </Link>
-          <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
-            About
-          </Link>
           <Link to="/admin" className="text-sm font-medium transition-colors hover:text-primary">
             Admin
-          </Link>
-          <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary">
-            Blog
-          </Link>
-          <Link to="/credit-report-upload" className="text-sm font-medium transition-colors hover:text-primary">
-            Credit Report Upload
-          </Link>
-          <Link to="/credit-reports" className="text-sm font-medium transition-colors hover:text-primary">
-            Credit Reports
           </Link>
           <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
             Dashboard
           </Link>
-          <Link to="/dispute-letter" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary">
+            Blog
+          </Link>
+          <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
+            About
+          </Link>
+          {/* <Link to="/credit-report-upload" className="text-sm font-medium transition-colors hover:text-primary">
+            Credit Report Upload
+          </Link> */}
+          {/* <Link to="/credit-reports" className="text-sm font-medium transition-colors hover:text-primary">
+            Credit Reports
+          </Link> */}
+          {/* <Link to="/dispute-letter" className="text-sm font-medium transition-colors hover:text-primary">
             Dispute Letter
-          </Link>
-          <Link to="/dispute-packet" className="text-sm font-medium transition-colors hover:text-primary">
+          </Link> */}
+          {/* <Link to="/dispute-packet" className="text-sm font-medium transition-colors hover:text-primary">
             Dispute Packet
-          </Link>
-          <Link to="/dispute-wizard" className="text-sm font-medium transition-colors hover:text-primary">
+          </Link> */}
+          {/* <Link to="/dispute-wizard" className="text-sm font-medium transition-colors hover:text-primary">
             Dispute Wizard
-          </Link>
+          </Link> */}
           {/* <Link to="/dispute-wizard2" className="text-sm font-medium transition-colors hover:text-primary">
             Dispute Wizard 2
           </Link> */}
@@ -66,15 +66,12 @@ export function Navbar() {
           {/* <Link to="/features" className="text-sm font-medium transition-colors hover:text-primary">
             Features
           </Link> */}
-          <Link to="/negative-tradelines" className="text-sm font-medium transition-colors hover:text-primary">
+          {/* <Link to="/negative-tradelines" className="text-sm font-medium transition-colors hover:text-primary">
             Negative Tradelines
-          </Link>
-          <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
+          </Link> */}
+          {/* <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
             Pricing
-          </Link>
-          <Link to="/profile" className="text-sm font-medium transition-colors hover:text-primary">
-            Profile
-          </Link>
+          </Link> */}
           {/* <Link to="/billing" className="text-sm font-medium transition-colors hover:text-primary">
           </Link> */}
         </nav>

@@ -15,7 +15,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { Navbar } from "@/components/layout/Navbar";
+interface SupabaseProfile {
+  first_name: string | null;
+  last_name: string | null;
+  dob: string | null;
+  ssn: string | null;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -42,26 +52,25 @@ export default function ProfilePage() {
           .from("profiles")
           .select("first_name, last_name, dob, ssn, address1, address2, city, state, zip")
           .eq("id", user.id)
-          .single();
+          .returns<SupabaseProfile[]>();
 
         if (error) throw error;
 
-        if (data) {
-          setFirstName(data.first_name ?? "");
-          setLastName(data.last_name ?? "");
-          setDob(data.dob ?? "");
-          setSSN(data.ssn ?? "");
-          setAddress1(data.address1 ?? "");
-          setAddress2(data.address2 ?? "");
-          setCity(data.city ?? "");
-          setState(data.state ?? "");
-          setZip(data.zip ?? "");
-        } else if (data === null) {
-          setFeedback("Profile not found. Please create a profile.");
+        if (data && data.length > 0) {
+          const profile = data[0];
+          setFirstName(profile.first_name ?? "");
+          setLastName(profile.last_name ?? "");
+          setDob(profile.dob ?? "");
+          setSSN(profile.ssn ?? "");
+          setAddress1(profile.address1 ?? "");
+          setAddress2(profile.address2 ?? "");
+          setCity(profile.city ?? "");
+          setState(profile.state ?? "");
+          setZip(profile.zip ?? "");
         } else {
-          setFeedback("Profile not found.");
+          setFeedback("Profile not found. Please create a profile.");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error loading profile:", error);
         setFeedback("Failed to load profile.");
       } finally {
@@ -72,106 +81,86 @@ export default function ProfilePage() {
     fetchProfile();
   }, [user]);
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!firstName) newErrors.firstName = "First name is required";
-    if (!lastName) newErrors.lastName = "Last name is required";
-    if (!dob) newErrors.dob = "Date of birth is required";
-    if (!ssn || !/^\d{3}-?\d{2}-?\d{4}$/.test(ssn))
-      newErrors.ssn = "Valid SSN is required (e.g., 123-45-6789)";
-    if (!address1) newErrors.address1 = "Address is required";
-    if (!city) newErrors.city = "City is required";
-    if (!state) newErrors.state = "State is required";
-    if (!zip || !/^\d{5}$/.test(zip))
-      newErrors.zip = "Valid ZIP code is required (e.g., 12345)";
+
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!dob.trim()) newErrors.dob = "Date of birth is required";
+    if (!ssn.trim() || !/^\d{3}-?\d{2}-?\d{4}$/.test(ssn)) {
+      newErrors.ssn = "Valid SSN format is required (e.g., XXX-XX-XXXX)";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id || !validateForm()) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          firstName,
-          lastName,
-          dob,
-          ssn,
-          address1,
-          address2,
-          city,
-          state,
-          zip,
-        });
-
-      if (error) throw error;
-      setFeedback("Profile updated successfully.");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      setFeedback("Failed to update profile.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-      <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>View and update your profile information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-6">
-              {[
-                { id: "firstName", label: "First Name", value: firstName, onChange: setFirstName },
-                { id: "lastName", label: "Last Name", value: lastName, onChange: setLastName },
-                { id: "dob", label: "Date of Birth", value: dob, onChange: setDob, type: "date" },
-                { id: "ssn", label: "SSN", value: ssn, onChange: setSSN },
-                { id: "address1", label: "Address Line 1", value: address1, onChange: setAddress1 },
-                { id: "address2", label: "Address Line 2", value: address2, onChange: setAddress2 },
-                { id: "city", label: "City", value: city, onChange: setCity },
-                { id: "state", label: "State", value: state, onChange: setState },
-                { id: "zip", label: "ZIP", value: zip, onChange: setZip },
-              ].map(({ id, label, value, onChange, type }) => (
-                <div key={id} className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor={id} className="text-right">{label}</Label>
-                  <Input
-                    id={id}
-                    type={type || "text"}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="col-span-3"
-                    aria-invalid={!!errors[id]}
-                    aria-describedby={`${id}-error`}
-                  />
-                  {errors[id] && (
-                    <p id={`${id}-error`} className="text-red-500 text-sm col-start-2 col-span-3">
-                      {errors[id]}
-                    </p>
-                  )}
-                </div>
-              ))}
-              <div className="grid grid-cols-4">
-                <div />
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Updating..." : "Update Profile"}
-                </Button>
-              </div>
-              {feedback && (
-                <p className="text-sm text-center text-green-600">{feedback}</p>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen py-10 px-4 md:px-10">
+      <Card className="max-w-3xl mx-auto space-y-6">
+        <CardHeader>
+          <CardTitle className="text-2xl">Profile</CardTitle>
+          <CardDescription>View and edit your personal profile information</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {feedback && <p className="text-red-600">{feedback}</p>}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="firstName">First Name</Label>
+              <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName}</p>}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="dob">Date of Birth</Label>
+            <Input id="dob" value={dob} onChange={(e) => setDob(e.target.value)} type="date" />
+            {errors.dob && <p className="text-red-500 text-sm">{errors.dob}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="ssn">SSN</Label>
+            <Input id="ssn" value={ssn} onChange={(e) => setSSN(e.target.value)} />
+            {errors.ssn && <p className="text-red-500 text-sm">{errors.ssn}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="address1">Address Line 1</Label>
+            <Input id="address1" value={address1} onChange={(e) => setAddress1(e.target.value)} />
+          </div>
+
+          <div>
+            <Label htmlFor="address2">Address Line 2</Label>
+            <Input id="address2" value={address2} onChange={(e) => setAddress2(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="city">City</Label>
+              <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="state">State</Label>
+              <Input id="state" value={state} onChange={(e) => setState(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="zip">ZIP Code</Label>
+              <Input id="zip" value={zip} onChange={(e) => setZip(e.target.value)} />
+            </div>
+          </div>
+
+          <Button onClick={() => validateForm() && alert("Form is valid!")}>
+            Save Changes
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

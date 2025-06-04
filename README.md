@@ -148,3 +148,29 @@ creditclarityai/
 > Late payments, collections, charge-offs, repossessions, bankruptcies, student loans, auto loans, mortgages, child support.
 
 For full FAQs, see [`faq.html`](app/templates/faq.html)
+
+
+
+AboutPage.tsx
+AdminPage.tsx
+BlogPage.tsx
+ContactPage.tsx
+DashboardPage.tsx
+FaqPage.tsx
+FeaturesPage.tsx
+ForgotPasswordPage.tsx
+HomePage.tsx
+LoginPage.tsx
+NotFoundPage.tsx
+PricingPage.tsx
+ProfilePage.tsx
+ResetPasswordPage.tsx
+SignupPage.tsx
+TestimonialsPage.tsx
+------------------------
+CreditReportUploadPage.tsx
+CreditReportsPage.tsx
+NegativeTradelinesPage.tsx
+DisputeLetterPage.tsx
+DisputePacketPage.tsx
+DisputeWizardPage.tsx

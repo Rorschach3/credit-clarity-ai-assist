@@ -1,8 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BarChart, Shield, FileSearch, User2, UserCheck, BookOpen } from "lucide-react";
 
+import MainLayout from "@/components/layout/MainLayout";
 import { Navbar } from "@/components/layout/Navbar";
 
 export default function AboutPage() {
@@ -30,7 +30,7 @@ export default function AboutPage() {
   ];
 
   return (
-    <div>
+    <MainLayout>
       {/* Hero Section */}
       <section className="bg-brand-50 py-20">
         <div className="container px-4 mx-auto">
@@ -182,6 +182,6 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-    </div>
+    </MainLayout>
   );
 }
