@@ -51,5 +51,4 @@ jobs:
           echo "🚀 Deploying to Vercel..."
           vercel deploy --prod --yes \
             --token ${{ secrets.VERCEL_TOKEN }} \
-            --org-id ${{ secrets.VERCEL_ORG_ID }} \
             --project-id ${{ secrets.VERCEL_PROJECT_ID }}
