@@ -28,10 +28,9 @@ const Dashboard = () => {
 
           <Tabs defaultValue="overview">
             <TabsList className="bg-[#1e2235] rounded-md flex flex-wrap gap-2 p-2 mb-6">
-              <TabsTrigger value="/src/pages/DashboardPage.tsx">Overview</TabsTrigger>
-              <TabsTrigger value="/src/pages/CreditReportUploadPage.tsx">Upload Credit Reports</TabsTrigger>
-              <TabsTrigger value="/src/pages/NegativeTradelinesPage.tsx">Tradelines</TabsTrigger>
-              <TabsTrigger value="/src/pages/DisputeLetterGeneratorPage.tsx">Dispute Letter Generator</TabsTrigger>
+              <TabsTrigger value="/src/pages/DashboardPage.tsx" onClick={() => navigate('/DashboardPage')}>Overview</TabsTrigger>
+              <TabsTrigger value="/src/pages/CreditReportUploadPage.tsx" onClick={() => navigate('/CreditReportUploadPage')}>Upload Credit Reports</TabsTrigger>
+              <TabsTrigger value="/src/pages/NegativeTradelinesPage.tsx" onClick={() => navigate('/NegativeTradelinesPage')}>Tradelines</TabsTrigger>
               <TabsTrigger value="/src/components/disputes/DisputeLetterGenerator.tsx" onClick={() => navigate('/dispute-wizard')}>Dispute Letter Generator</TabsTrigger>
             </TabsList>
           </Tabs>

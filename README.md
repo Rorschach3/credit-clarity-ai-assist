@@ -1,7 +1,6 @@
 <div align="center">
 
-![Credit Clarity Logo](https://i.ibb.co/HD1HjjhN/031144832693.png)
-
+![Credit Clarity Logo](https://i.ibb.co/21wJjHWr/Credit-Clarity-Ghost.png)
 </div>
 
 <h1 align="center"><span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2C3E50;">CreditClarityAI</span></h1>
@@ -149,28 +148,9 @@ creditclarityai/
 
 For full FAQs, see [`faq.html`](app/templates/faq.html)
 
-
-
-AboutPage.tsx
-AdminPage.tsx
-BlogPage.tsx
-ContactPage.tsx
-DashboardPage.tsx
-FaqPage.tsx
-FeaturesPage.tsx
-ForgotPasswordPage.tsx
-HomePage.tsx
-LoginPage.tsx
-NotFoundPage.tsx
-PricingPage.tsx
-ProfilePage.tsx
-ResetPasswordPage.tsx
-SignupPage.tsx
-TestimonialsPage.tsx
 ------------------------
 CreditReportUploadPage.tsx
-CreditReportsPage.tsx
-NegativeTradelinesPage.tsx
+TradelinesPage.tsx
 DisputeLetterPage.tsx
 DisputePacketPage.tsx
 DisputeWizardPage.tsx
