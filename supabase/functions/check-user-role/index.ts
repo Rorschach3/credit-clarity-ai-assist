@@ -21,9 +21,9 @@ serve(async (req) => {
 
     // Get the user's role from the database
     const { data: userRole, error } = await supabase
-      .from('user_roles')
+      .from('profiles')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) {
