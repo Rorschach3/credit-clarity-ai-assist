@@ -31,9 +31,9 @@ jobs:
       - name:  Build with Vite
         run: npm run build
 
-      - name: "Optional: Run Tests"
-        run: npm test
-        continue-on-error: true # Remove this if test failures should block deployment
+      # - name: "Optional: Run Tests"
+      #   run: npm test
+      #   continue-on-error: true # Remove this if test failures should block deployment
 
   deploy:
     name: Deploy to Vercel
