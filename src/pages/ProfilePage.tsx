@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,18 +12,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { supabase } from "../../supabase/client";
+import { Database } from "../../supabase/types/supabase";
+import { z } from "zod";
 
-interface SupabaseProfile {
-  first_name: string | null;
-  last_name: string | null;
-  dob: string | null;
-  ssn: string | null;
-  address1: string | null;
-  address2: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-}
+type SupabaseProfile = Database['public']['Tables']['profiles']['Row'];
 
 export default function ProfilePage() {
   const { user } = useAuth();

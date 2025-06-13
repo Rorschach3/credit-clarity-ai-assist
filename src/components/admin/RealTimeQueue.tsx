@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables as TablesType } from '@/integrations/supabase/schema';
+import { supabase } from '../../../supabase/client';
+import type { Tables as TablesType } from '../../../supabase/types/supabase';
 import {
   Table,
   TableBody,

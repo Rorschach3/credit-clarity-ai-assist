@@ -14,7 +14,7 @@ import {
   Loader2, FileText, CheckCircle2, AlertCircle, Bot,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/integrations/supabase/client"
+import { supabase } from "../../../supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { FileUploadZone } from "./FileUploadZone"
 import type { NegativeItem } from "@/types/document"

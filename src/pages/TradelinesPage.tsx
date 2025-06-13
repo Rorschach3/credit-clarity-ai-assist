@@ -2,19 +2,21 @@ import MainLayout from "@/components/layout/MainLayout";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../supabase/client";
+import { Database } from "../../supabase/types/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { Database } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { TradelineSchema } from "@/utils/schemas"; // Import TradelineSchema
+import { z } from "zod"; // Import z from zod
 
 // Define Tradeline type from Supabase schema
 type Tradeline = Database["public"]["Tables"]["tradelines"]["Row"];
 
-const NegativeTradelinesPage = () => {
+const TradelinesPage = () => {
   const [accounts, setAccounts] = useState<Tradeline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
@@ -24,12 +26,12 @@ const NegativeTradelinesPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchNegativeTradelines = async () => {
+    const fetchTradelines = async () => {
       if (!user) return;
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await supabase
+        const { data, error }: { data: Tradeline[] | null; error: any } = await supabase
           .from("tradelines")
           .select("*")
           .eq("user_id", user.id)
@@ -45,10 +47,11 @@ const NegativeTradelinesPage = () => {
       }
     };
 
-    fetchNegativeTradelines();
+    fetchTradelines();
   }, [user]);
 
   const handleSaveEdit = async (updatedTradeline: Tradeline) => {
+    console.log("Updating tradeline:", updatedTradeline);
     try {
       const { error } = await supabase
         .from("tradelines")
@@ -63,7 +66,7 @@ const NegativeTradelinesPage = () => {
         setEditingAccount(null);
       }
     } catch (editError: unknown) {
-      console.error("Unexpected error updating tradeline:", editError);
+      console.error("Unexpected error updating tradeline:", editError, updatedTradeline);
       setError(editError instanceof Error ? editError.message : "Failed to update tradeline.");
     }
   };
@@ -82,7 +85,7 @@ const NegativeTradelinesPage = () => {
           {accounts.map((account) => (
             <Card key={account.id} className="border-red-500 bg-[rgba(255,255,255,0.08)]">
               <CardHeader>
-                <CardTitle>{account.creditor}</CardTitle>
+                <CardTitle>{account.creditor_name}</CardTitle>
                 <Badge variant="destructive">Negative</Badge>
               </CardHeader>
               <CardContent>
@@ -101,10 +104,9 @@ const NegativeTradelinesPage = () => {
                   className="mb-2"
                 />
                 <p><strong>Account Number:</strong> {account.account_number}</p>
-                <p><strong>Status:</strong> {account.status}</p>
-                <p><strong>Balance:</strong> {account.balance}</p>
+                <p><strong>Status:</strong> {account.account_status}</p>
+                <p><strong>Balance:</strong> {account.account_balance}</p>
                 <p><strong>Date Opened:</strong> {account.date_opened}</p>
-                <p><strong>Account Condition:</strong> {account.account_condition}</p>
               </CardContent>
               <div className="flex space-x-2 mt-2">
                 <button
@@ -165,19 +167,37 @@ const NegativeTradelinesPage = () => {
   );
 };
 
-export default NegativeTradelinesPage;
+export default TradelinesPage;
 
 const EditTradelineForm = ({ tradeline, onSave, onCancel }: { tradeline: Tradeline; onSave: (updatedTradeline: Tradeline) => void; onCancel: () => void }) => {
   const [formData, setFormData] = useState<Tradeline>(tradeline);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    try {
+      // Validate formData using Zod schema
+      const parsed = TradelineSchema.parse(formData);
+      onSave({...tradeline, ...parsed});
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        err.errors.forEach((error) => {
+          if (error.path.length > 0) {
+            fieldErrors[error.path[0] as string] = error.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        console.error("Unexpected validation error:", err);
+      }
+    }
   };
 
   return (
@@ -189,15 +209,36 @@ const EditTradelineForm = ({ tradeline, onSave, onCancel }: { tradeline: Tradeli
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="creditor" className="text-right">Creditor</Label>
-            <Input id="creditor" name="creditor" value={formData.creditor} onChange={handleChange} className="col-span-3" />
+            <Input
+              id="creditor"
+              name="creditor_name"
+              value={formData.creditor_name}
+              onChange={handleChange}
+              className={`col-span-3 ${errors.creditor_name ? "border-red-500" : ""}`}
+            />
+            {errors.creditor_name && <p className="text-red-500 col-span-4 ml-4">{errors.creditor_name}</p>}
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="account_number" className="text-right">Account Number</Label>
-            <Input id="account_number" name="account_number" value={formData.account_number} onChange={handleChange} className="col-span-3" />
+            <Input
+              id="account_number"
+              name="account_number"
+              value={formData.account_number}
+              onChange={handleChange}
+              className={`col-span-3 ${errors.account_number ? "border-red-500" : ""}`}
+            />
+            {errors.account_number && <p className="text-red-500 col-span-4 ml-4">{errors.account_number}</p>}
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">Status</Label>
-            <Input id="status" name="status" value={formData.status} onChange={handleChange} className="col-span-3" />
+            <Input
+              id="status"
+              name="account_status"
+              value={formData.account_status}
+              onChange={handleChange}
+              className={`col-span-3 ${errors.account_status ? "border-red-500" : ""}`}
+            />
+            {errors.account_status && <p className="text-red-500 col-span-4 ml-4">{errors.account_status}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>

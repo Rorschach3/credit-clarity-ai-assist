@@ -1,0 +1,12 @@
+context:
+  - provider: file
+  - provider: code
+  - provider: currentFile
+  - provider: diff
+  - provider: web
+    params:
+      n: 5
+  - provider: codebase
+  - provider: debugger
+    params: 
+     stackDepth: 3

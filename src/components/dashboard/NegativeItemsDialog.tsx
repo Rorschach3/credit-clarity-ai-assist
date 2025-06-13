@@ -6,9 +6,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../../supabase/client";
 import { Loader2 } from "lucide-react";
-import { Database } from "@/integrations/supabase/schema";
+import { Database } from "../../../supabase/types/supabase";
 
 
 interface NegativeItemsDialogProps {

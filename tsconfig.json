@@ -6,10 +6,10 @@
   ],
   "compilerOptions": {
     "types": ["node", "jest"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
+   "baseUrl": ".",
+   "paths": {
+     "@/*": ["src/*"]
+   },
     "jsx": "react-jsx",
     "noImplicitAny": false,
     "noUnusedParameters": false,

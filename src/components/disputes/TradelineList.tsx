@@ -41,12 +41,19 @@ export const TradelineList: React.FC<TradelineListProps> = ({
             <div>Account #: {t.accountNumber}</div>
             <div>Status: {t.status} — Negative: {t.isNegative ? "Yes" : "No"}</div>
             {t.negativeReason && <div>Reason: {t.negativeReason}</div>}
-            <div>Balance: ${t.balance?.toFixed(2) || "0.00"}</div>
+            <div>Balance: ${t.balance && Number(t.balance).toFixed(2) || "0.00"}</div>
             <div>Date Opened: {t.dateOpened || "N/A"}</div>
             <Input
               placeholder="Reason for Dispute (optional)"
               defaultValue={t.negativeReason}
-              onChange={(e) => (t.negativeReason = e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length < 200) {
+                  t.negativeReason = e.target.value;
+                } else {
+                  alert("Reason for dispute cannot exceed 200 characters.");
+                  e.target.value = t.negativeReason || "";
+                }
+              }}
             />
             <Button
               variant={selected.includes(t) ? "destructive" : "default"}

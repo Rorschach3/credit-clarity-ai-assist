@@ -26,14 +26,15 @@ const Dashboard = () => {
         <div>
           <h1 className="text-4xl font-bold mb-6">Your Credit Dashboard</h1>
 
-          <Tabs defaultValue="overview">
-            <TabsList className="bg-[#1e2235] rounded-md flex flex-wrap gap-2 p-2 mb-6">
-              <TabsTrigger value="/src/pages/DashboardPage.tsx" onClick={() => navigate('/Dashboard')}>Overview</TabsTrigger>
-              <TabsTrigger value="/src/pages/CreditReportUploadPage.tsx" onClick={() => navigate('/Credit-Report-Upload')}>Upload Credit Reports</TabsTrigger>
-              <TabsTrigger value="/src/pages/NegativeTradelinesPage.tsx" onClick={() => navigate('/Tradelines')}>Tradelines</TabsTrigger>
-              <TabsTrigger value="/src/components/disputes/DisputeLetterGenerator.tsx" onClick={() => navigate('/dispute-wizard')}>Dispute Letter Generator</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <Tabs defaultValue="overview">
+          <TabsList className="bg-[#1e2235] rounded-md flex flex-wrap gap-2 p-2 mb-6">
+            <TabsTrigger value="overview" onClick={() => navigate('/dashboard')}>Overview</TabsTrigger>
+            <TabsTrigger value="disputes" onClick={() => navigate('/disputes')}>Disputes</TabsTrigger>
+            <TabsTrigger value="tradelines" onClick={() => navigate('/tradelines')}>Tradelines</TabsTrigger>
+            <TabsTrigger value="dispute-generator" onClick={() => navigate('/dispute-wizard')}>Dispute Letter Generator</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
