@@ -32,3 +32,4 @@ dist/
 .env
 influxdata-archive_compat.key
 .env
+.roo/mcp.json

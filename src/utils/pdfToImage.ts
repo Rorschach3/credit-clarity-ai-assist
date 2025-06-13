@@ -1,6 +1,6 @@
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 
-GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.min.mjs`;
+GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.3.31/build/pdf.worker.min.mjs`;
 
 export async function pdfToImages(buffer: ArrayBuffer): Promise<string[]> {
   const pdf: PDFDocumentProxy = await getDocument({ data: buffer }).promise;

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { parsePdfDocument } from "@/utils/pdf-parser";
-import { extractAccounts, ParsedAccount } from "@/utils/ocr-parser";
+import { ParsedAccount, parseAccountNumbers } from "@/utils/ocr-parser";
 
 interface OCRAccountDisplayProps {
   rawOcrText?: string;
@@ -29,6 +29,7 @@ export const OCRAccountDisplay = async ({ rawOcrText, filePath }: OCRAccountDisp
           accounts = [parsedData];
         }
       } catch (error: unknown) {
+        console.error("PDF parsing error:", (error as Error).message);
         errorMessage = `Error parsing PDF document: ${(error as Error).message}`;
       }
     }
@@ -37,7 +38,7 @@ export const OCRAccountDisplay = async ({ rawOcrText, filePath }: OCRAccountDisp
       .replace(/\n/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim();
-    accounts = extractAccounts(cleanedText);
+    accounts = parseAccountNumbers(cleanedText);
   }
 
   return (
@@ -47,9 +48,9 @@ export const OCRAccountDisplay = async ({ rawOcrText, filePath }: OCRAccountDisp
         {accounts.map((account, index) => (
           <Card key={index}>
             <CardContent>
-              <CardTitle>{(account as UpstageAccount).account_name || (account as ParsedAccount).accountName || "Unknown Account"}</CardTitle>
+              <CardTitle>{(account as UpstageAccount).account_name || (account as ParsedAccount).raw || "Unknown Account"}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Account Number: {(account as UpstageAccount).account_number || (account as ParsedAccount).accountNumber || "N/A"}
+                Account Number: {(account as UpstageAccount).account_number || (account as ParsedAccount).normalized || "N/A"}
               </p>
             </CardContent>
           </Card>
