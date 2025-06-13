@@ -1,58 +1,80 @@
-import { supabase } from "@/integrations/supabase/client";
+// src/utils/aiService.ts
+
+import { supabase } from "../../supabase/client";
 import type { NegativeItem } from "@/types/document";
+import { z } from "zod";
 
-
+// Vite environment variable for OpenAI key
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY as string;
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
-// Types for AI analysis results
-export interface ExtractedText {
-  rawText: string;
-  structuredData: {
-    personalInfo?: {
-      name?: string;
-      address?: string;
-      ssn?: string;
-    };
-    accounts: Account[];
-  };
-}
+// Zod schema for an extracted account
+export const AccountSchema = z.object({
+  accountNumber: z.string(),
+  accountName: z.string(),
+  creditorName: z.string(),
+  accountBalance: z.string().optional(),
+  accountStatus: z.string().optional(),
+  accountType: z.string().optional(),
+  dateOpened: z.string().optional(),
+  isNegative: z.boolean().optional(),
+});
+export type Account = z.infer<typeof AccountSchema>;
 
-export interface Account {
-  name: string;
-  status: string;
-  dateOpened: string;
-  balance: string;
-  paymentHistory: string;
-  isNegative?: boolean;
-  reason?: string;
-}
+// Zod schema for extracted text and structured data
+export const ExtractedTextSchema = z.object({
+  rawText: z.string(),
+  structuredData: z.object({
+    personalInfo: z
+      .object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        zip: z.string().optional(),
+        email: z.string().optional(),
+        ssnLastFour: z.string().optional(),
+      })
+      .optional(),
+    accounts: z.array(AccountSchema),
+  }),
+});
+export type ExtractedText = z.infer<typeof ExtractedTextSchema>;
 
-export interface DisputeAnalysis {
-  negativeItems: Account[];
-  recommendedDisputes: Account[];
-  analysisNotes: string;
-}
+// Zod schema for dispute analysis
+export const DisputeAnalysisSchema = z.object({
+  negativeItems: z.array(AccountSchema),
+  recommendedDisputes: z.array(AccountSchema),
+  analysisNotes: z.string(),
+});
+export type DisputeAnalysis = z.infer<typeof DisputeAnalysisSchema>;
 
-export interface GeneratedLetter {
-  content: string;
-  qualityScore: number;
-  suggestions: string[];
-}
+// Zod schema for generated letter
+export const GeneratedLetterSchema = z.object({
+  content: z.string(),
+  qualityScore: z.number(),
+  suggestions: z.array(z.string()),
+});
+export type GeneratedLetter = z.infer<typeof GeneratedLetterSchema>;
 
-export interface UserData {
-  firstName?: string;
-  lastName?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  phone?: string;
-  email?: string;
-  ssnLastFour?: string;
-}
+// Zod schema for user data
+export const UserDataSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  address1: z.string().optional(),
+  address2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
+  phoneNumber: z.string().optional(),
+});
+export type UserData = z.infer<typeof UserDataSchema>;
 
-// Main AI service functions
+// Main AI service
+  /**
+   * Extract text and structured accounts from a document via Supabase Edge Function
+   */
 export const aiService = {
   // Extract text and structure data from document using OCR and AI
   async extractTextFromDocument(
@@ -74,25 +96,27 @@ export const aiService = {
       throw new Error('Failed to extract text from document');
     }
   },
-  
-  // Analyze credit report to identify negative items
-  async analyzeReport(extractedText: ExtractedText): Promise<DisputeAnalysis> {
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-report-analysis', {
-        body: {
-          extractedText
-        }
-      });
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error in AI report analysis:', error);
-      throw new Error('Failed to analyze credit report');
+
+  /**
+   * Analyze credit report to identify negative items via Supabase Edge Function
+   */
+  async analyzeReport(
+    extractedText: ExtractedText
+  ): Promise<DisputeAnalysis> {
+    const { data, error } = await supabase.functions.invoke<DisputeAnalysis>(
+      "ai-report-analysis",
+      { body: { extractedText } }
+    );
+    if (error) {
+      console.error("Error analyzing report:", error);
+      throw new Error(error.message);
     }
+    return DisputeAnalysisSchema.parse(data);
   },
-  
-  // Generate dispute letter with AI
+
+  /**
+   * Generate dispute letter via Supabase Edge Function
+   */
   async generateDisputeLetter(
     items: NegativeItem[],
     bureau: string,
@@ -114,106 +138,67 @@ export const aiService = {
       throw new Error('Failed to generate dispute letter');
     }
   },
-  
-  // Validate and improve quality of AI-generated letter
+
+  /**
+   * Review and improve the letter via Supabase Edge Function
+   */
   async reviewDisputeLetter(
     letterContent: string,
     bureau: string
   ): Promise<GeneratedLetter> {
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-letter-review', {
-        body: {
-          letterContent,
-          bureau
-        }
-      });
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error in AI letter review:', error);
-      throw new Error('Failed to review dispute letter');
+    const { data, error } = await supabase.functions.invoke<GeneratedLetter>(
+      "ai-letter-review",
+      { body: { letterContent, bureau } }
+    );
+    if (error) {
+      console.error("Error reviewing letter:", error);
+      throw new Error(error.message);
     }
+    return GeneratedLetterSchema.parse(data);
   },
 
-  async classifyTradeline(text: string): Promise<{ isNegative: boolean; reason: string }> {
+  /**
+   * General-purpose chat completion via OpenAI REST API
+   */
+  async chatCompletion(
+    messages: { role: "system" | "user" | "assistant"; content: string }[],
+    model: string = "gpt-3.5-turbo-16k",
+    maxTokens: number = 2048
+  ): Promise<string> {
+    const res = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.7 }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      console.error("OpenAI API error:", json);
+      throw new Error(json.error?.message || "OpenAI request failed");
+    }
+    return json.choices?.[0]?.message?.content;
+  },
+
+  /**
+   * Classify a single tradeline as negative or not
+   */
+  async classifyTradeline(
+    text: string
+  ): Promise<{ isNegative: boolean; reason: string }> {
     try {
-      const content = await aiService.chatCompletion([
-        { role: "system", content: "You are a credit analyzer. Given a single tradeline JSON as input, determine if the tradeline is negative. Respond with valid JSON { \"isNegative\": boolean, \"reason\": string } only." },
-        { role: "user", content: text }
-      ], "gpt-3.5-turbo-16k", 2048);
-      return JSON.parse(content) as { isNegative: boolean; reason: string };
+      const content = await this.chatCompletion(
+        [
+          { role: "system", content: "You are a credit analyzer. Given a JSON tradeline, respond with { \"isNegative\": boolean, \"reason\": string }." },
+          { role: "user", content: text }
+        ],
+        "gpt-3.5-turbo-16k"
+      );
+      return JSON.parse(content);
     } catch (err) {
       console.error("Error classifying tradeline:", err);
       return { isNegative: false, reason: "" };
-    }
-  },
-  async ExtractedAccounts(ocrText: string): Promise<Account[]> {
-    try {
-      const content = await aiService.chatCompletion([
-        { role: "system", content: "You are a JSON extractor. Given raw OCR text of credit tradelines, extract all accounts and return a JSON array of objects matching the Account interface: { name, status, dateOpened, balance, paymentHistory }." },
-        { role: "user", content: ocrText }
-      ], "gpt-3.5-turbo-16k", 2048);
-      return JSON.parse(content) as Account[];
-    } catch (err) {
-      console.error("Error extracting accounts:", err);
-      const accounts: Account[] = [];
-      const accountMarkers = /Account Name|Status|Date Opened|Balance|Payment History/gim;
-      const accountSegments = ocrText.split(accountMarkers);
-      accountSegments.forEach(segment => {
-        if (segment.trim() !== "") {
-          const account: Account = {
-            name: /Account Name:\s*(.*)/i.exec(segment)?.[1] || "",
-            status: /Status:\s*(.*)/i.exec(segment)?.[1] || "",
-            dateOpened: /Date Opened:\s*(.*)/i.exec(segment)?.[1] || "",
-            balance: /Balance:\s*(.*)/i.exec(segment)?.[1] || "",
-            paymentHistory: /Payment History:\s*(.*)/i.exec(segment)?.[1] || "",
-          };
-          accounts.push(account);
-        }
-      });
-      return accounts;
-    }
-  },
-
-  // General chat completion for chatbot widget
-  async chatCompletion(messages: { role: "user" | "assistant" | "system"; content: string }[], model: string = "gpt-3.5-turbo-16k", maxTokens: number = 2048): Promise<string> {
-    try {
-      // Only send the last 10 messages to reduce token usage
-      const contextMessages = messages.slice(-10);
-      const res = await fetch(OPENAI_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model,
-          messages: contextMessages,
-          max_tokens: maxTokens,
-          temperature: 0.7
-        })
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        // OpenAI API error, show message and log details
-        console.error("OpenAI API error:", data);
-        if (data && data.error && data.error.message) {
-          return `OpenAI API error: ${data.error.message}`;
-        }
-        return "Sorry, I'm having trouble responding right now (OpenAI API error).";
-      }
-
-      if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-        console.error("OpenAI API returned unexpected response:", data);
-        return "Sorry, I couldn't generate a response (unexpected API response).";
-      }
-
-      return data.choices[0].message.content as string;
-    } catch (err) {
-      console.error("Error in chatCompletion:", err);
-      return "Sorry, I'm having trouble responding right now.";
     }
   }
 };

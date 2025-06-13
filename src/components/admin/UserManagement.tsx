@@ -1,8 +1,8 @@
 
 import { useState } from 'react'
 import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/integrations/supabase/client"
-import { Users } from "@/integrations/supabase/schema"
+import { supabase } from "../../../supabase/client"
+import { Users } from "../../../supabase/types/supabase"
 import {
   Table,
   TableBody,

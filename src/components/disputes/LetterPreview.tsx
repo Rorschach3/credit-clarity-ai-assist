@@ -40,7 +40,7 @@ export const LetterPreview: React.FC<LetterPreviewProps> = ({
         <div
           className={`${fontSize} ${fontWeightClass} ${fontStyleClass} ${textAlignClass} whitespace-pre-wrap break-words`}
           style={{ whiteSpace: "pre-wrap" }}
-          // Render content as plain text with preserved whitespace and line breaks
+          // Render content as plain text with preserved whitespace and tradeline breaks
         >
           {content}
         </div>

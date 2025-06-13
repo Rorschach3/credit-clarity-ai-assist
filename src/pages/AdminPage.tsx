@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables as TablesType } from "@/integrations/supabase/schema";
+import { supabase } from "../../supabase/client";
 import useActivityMonitoring from "@/hooks/use-activity-monitoring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Package, Mail } from "lucide-react"
 import { DisputeManagement } from "@/components/admin/DisputeManagement"
 import { UserManagement } from "@/components/admin/UserManagement"
 import PostageManagement from "@/components/admin/PostageManagement"
-import AuditLog from "@/components/admin/AuditLog"
 import MainLayout from "@/components/layout/MainLayout";
 import AdminRoute from "@/components/auth/AdminRoute";
 

@@ -1,9 +1,17 @@
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 
-GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.min.mjs`;
+// Correctly import the worker using Vite's URL handling for workers
+GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
+console.log('Setting GlobalWorkerOptions.workerSrc to:', GlobalWorkerOptions.workerSrc);
 
 export async function pdfToImages(buffer: ArrayBuffer): Promise<string[]> {
-  const pdf: PDFDocumentProxy = await getDocument({ data: buffer }).promise;
+  let pdf: PDFDocumentProxy;
+  try {
+    pdf = await getDocument({ data: buffer }).promise;
+  } catch (error) {
+    console.error('Error loading PDF document or worker:', error);
+    throw error;
+  }
   const images: string[] = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
