@@ -70,7 +70,8 @@ const DisputeWizardPage = () => {
       setTradelines(parsed);
       if (user) await saveTradelinesToDatabase(parsed, user.id);
       toast({ title: "Upload complete", description: "Tradelines extracted." });
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("PDF processing error:", (error as Error).message);
       toast({ title: "Error", description: "Failed to process PDF." });
     } finally {
       setIsUploading(false);
