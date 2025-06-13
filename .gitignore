@@ -34,3 +34,4 @@ influxdata-archive_compat.key
 .env
 
 mcp.json.roo/mcp.json
+.roo/mcp.json
