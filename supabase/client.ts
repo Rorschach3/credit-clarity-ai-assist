@@ -3,10 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../supabase/types/supabase';
 
 
-const SUPABASE_URL = import.meta.env.SUPABASE_URL
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL as string;
+const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY as string;
 
 // Import the supabase client in other files like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey);
