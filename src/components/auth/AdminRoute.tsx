@@ -2,7 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../../supabase/client";
 
 interface AdminRouteProps {
   children: React.ReactNode;

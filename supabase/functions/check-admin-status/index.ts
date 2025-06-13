@@ -1,10 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-serve(async (req)=>{
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+Deno.serve(async (req)=>{
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
@@ -20,7 +21,7 @@ serve(async (req)=>{
       throw new Error('Missing Authorization header');
     }
     // Validate the user making the request
-    const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5d29obWJxb2h5dHppd3NqcnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4NjYzNDQsImV4cCI6MjA2MTQ0MjM0NH0.F1Y8K6wmkqTInHvI1j9Pbog782i3VSVpIbgYqakyPwo'));
+    const { data: { user }, error: userError } = await supabase.auth.getUser({accessToken: authHeader.replace('Bearer ', '')});
     if (userError || !user) {
       throw new Error('Invalid token or user not found');
     }

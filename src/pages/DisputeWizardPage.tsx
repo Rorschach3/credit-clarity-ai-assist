@@ -1,120 +1,166 @@
 "use client";
-
-import React, { useState, useEffect, useRef, ChangeEvent } from "react";
-import { createWorker, Worker } from "tesseract.js";
+import React, { useState, ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { pdfToImages } from "@/utils/pdfToImage";
+import { analyzeDisputeText, generateDisputeLetter, saveTradelines } from "@/services/aiService";
+import type { Account, UserData } from "@/schemas/ai";
 import { useAuth } from "@/hooks/use-auth";
-import { aiService } from "@/utils/ai-service";
-import { saveTradelinesToDatabase, parseTradelinesFromText, ParsedTradeline } from "@/utils/tradelineParser";
 
-import { MailingInstructions } from "@/components/disputes/MailingInstructions";
-import { DocumentUploadSection } from "@/components/disputes/DocumentUploadSection";
-import { LetterEditor } from "@/components/disputes/LetterEditor";
-import { ManualTradelineModal } from "@/components/disputes/ManualTradelineModal";
-import { TradelineList } from "@/components/disputes/TradelineList";
-import { UserInfoForm } from "@/components/disputes/UserInfoForm";
-import { TradelineGrid } from "@/components/disputes/TradelineGrid";
-import { groupTradelinesByAccount, BureauTradeline } from "@/utils/groupTradelinesByAccount";
-
-const DisputeWizardPage = () => {
+export default function DisputeWizardPage() {
   const { user } = useAuth();
-  const [tradelines, setTradelines] = useState<ParsedTradeline[]>([]);
-  const [selectedTradelines, setSelectedTradelines] = useState<ParsedTradeline[]>([]);
-  const [userInfo, setUserInfo] = useState({ name: "", address: "", city: "", state: "", zip: "" });
-  const [letter, setLetter] = useState("");
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selected, setSelected] = useState<Account[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [manualModalOpen, setManualModalOpen] = useState(false);
-  const [showDocsSection, setShowDocsSection] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
+  const [letter, setLetter] = useState("");
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      workerRef.current = await createWorker();
-    })();
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return toast({ title: "No file", description: "Select a PDF." });
+    if (file.type !== "application/pdf")
+      return toast({ title: "Invalid", description: "Only PDFs allowed." });
 
-  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || file.type !== "application/pdf") {
-      toast({ title: "Invalid file", description: "Please upload a PDF file." });
-      return;
-    }
-
-    setIsUploading(true);
+    setUploading(true);
     setUploadProgress(0);
-    setTradelines([]);
-    setSelectedTradelines([]);
-    setLetter("");
+    setAccounts([]);
+    setSelected([]);
 
-    try {
-      const buffer = await file.arrayBuffer();
-      const images = await pdfToImages(buffer);
-      let textContent = "";
-      for (let i = 0; i < images.length; i++) {
-        if (!workerRef.current) throw new Error("Worker not initialized");
-        const { data } = await workerRef.current.recognize(images[i]);
-        textContent += data.text + "\n";
-        setUploadProgress(((i + 1) / images.length) * 100);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const dataUrl = reader.result;
+      if (typeof dataUrl !== "string") {
+        setUploading(false);
+        return toast({ title: "Error", description: "Could not read file." });
       }
-      const parsed = parseTradelinesFromText(textContent);
-      setTradelines(parsed);
-      if (user) await saveTradelinesToDatabase(parsed, user.id);
-      toast({ title: "Upload complete", description: "Tradelines extracted." });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to process PDF." });
-    } finally {
-      setIsUploading(false);
+      setUploadProgress(50);
+      try {
+        // Call the new service:
+        const analysis = await analyzeDisputeText(dataUrl);
+        setAccounts(analysis.accounts);
+        toast({
+          title: "Extraction Complete",
+          description: `Found ${analysis.accounts.length} accounts.`,
+        });
+      } catch (err: any) {
+        toast({ title: "Extraction Failed", description: err.message });
+      } finally {
+        setUploadProgress(100);
+        setUploading(false);
+      }
+    };
+    reader.onerror = () => {
+      setUploading(false);
+      toast({ title: "Read Error", description: "Failed to load file." });
+    };
+  };
+
+  const toggleSelect = (acct: Account) => {
+    setSelected((prev) =>
+      prev.some((a) => a.accountNumber === acct.accountNumber)
+        ? prev.filter((a) => a.accountNumber !== acct.accountNumber)
+        : [...prev, acct]
+    );
+  };
+
+  const generateLetterHandler = async () => {
+    if (!user) return toast({ title: "Not signed in", description: "" });
+    if (!name || !address || selected.length === 0)
+      return toast({ title: "Missing Info", description: "Enter name, address & pick accounts." });
+
+    const userData: UserData = { name, address };
+    try {
+      // Save tradelines in the database
+      await saveTradelines(selected, user.id);
+      // Generate the dispute letter
+      const { letter: content } = await generateDisputeLetter(selected, userData);
+      setLetter(content);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message });
     }
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
-      <Card className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
+      <Card className="max-w-3xl mx-auto space-y-6">
         <CardHeader>
-          <CardTitle className="text-2xl">Dispute Wizard</CardTitle>
+          <CardTitle>Dispute Wizard</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <Label htmlFor="pdf-upload">Upload Credit Report (PDF)</Label>
-          <Input id="pdf-upload" type="file" accept="application/pdf" onChange={handleFileUpload} disabled={isUploading} />
-          {isUploading && <Progress value={uploadProgress} className="w-full" />}
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="pdf-upload">Upload Credit Report</Label>
+            <Input
+              id="pdf-upload"
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileUpload}
+              disabled={uploading}
+            />
+            {uploading && <Progress value={uploadProgress} className="mt-2" />}
+          </div>
 
-          <TradelineGrid tradelines={groupTradelinesByAccount(tradelines as BureauTradeline[])} />
+          {accounts.length > 0 && (
+            <div>
+              <Label>Select Accounts to Dispute</Label>
+              <div className="space-y-3 mt-2">
+                {accounts.map((a) => {
+                  const isSelected = selected.some((s) => s.accountNumber === a.accountNumber);
+                  return (
+                    <div
+                      key={a.accountNumber}
+                      className={`p-4 border rounded-lg cursor-pointer ${
+                        isSelected ? "border-destructive bg-destructive/10" : ""
+                      }`}
+                      onClick={() => toggleSelect(a)}
+                    >
+                      <strong>{a.creditorName}</strong>
+                      <br />
+                      Account #: {a.accountNumber}
+                      <br />
+                      Status: {a.accountStatus}
+                      <br />
+                      Balance:{" "}
+                      {a.accountBalance !== undefined ? `$${a.accountBalance.toFixed(2)}` : "N/A"}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-          <TradelineList
-            tradelines={tradelines}
-            selected={selectedTradelines}
-            setSelected={setSelectedTradelines}
-            onAddManual={() => setManualModalOpen(true)}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Your Name</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+            </div>
+          </div>
 
-          <UserInfoForm userInfo={userInfo} onChange={setUserInfo} />
+          <Button
+            onClick={generateLetterHandler}
+            disabled={!name || !address || selected.length === 0}
+          >
+            Generate Letter
+          </Button>
 
-          <LetterEditor
-            userInfo={userInfo}
-            selectedTradelines={selectedTradelines}
-            letter={letter}
-            setLetter={setLetter}
-            setShowDocsSection={setShowDocsSection}
-          />
-
-          <MailingInstructions />
-
-          {showDocsSection && <DocumentUploadSection onClose={() => setShowDocsSection(false)} />}
-          {manualModalOpen && <ManualTradelineModal onClose={() => setManualModalOpen(false)} onAdd={t => setTradelines([...tradelines, t])} />}
+          {letter && (
+            <div className="space-y-2">
+              <Label>Generated Letter</Label>
+              <Textarea readOnly rows={12} value={letter} className="font-mono" />
+            </div>
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
-};
-
-export default DisputeWizardPage;
+}

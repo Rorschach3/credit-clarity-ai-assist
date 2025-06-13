@@ -2,11 +2,11 @@ export interface NegativeItem {
   id: string;
   creditorName: string;
   accountNumber: string;
-  amount: string;
+  accountBalance: string;
   dateReported: string;
-  bureaus: string[];
-  reason: string;
-  status: string;
+  creditBureau: string;
+  accountType: string;
+  accountStatus: string;
 }
 
 export interface CreditReport {

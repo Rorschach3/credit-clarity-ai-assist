@@ -1,4 +1,4 @@
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from '../../supabase/client';
 
 async function testRLS() {
   // Get the authenticated user's ID

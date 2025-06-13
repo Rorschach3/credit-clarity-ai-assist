@@ -11,37 +11,43 @@ export type Database = {
     Tables: {
       disputes: {
         Row: {
-          created_at: string;
-          credit_bureau: string;
           id: string;
-          letter_content: string;
-          mailing_address: string;
-          shipping_label_url: string | null;
-          status: string;
-          tracking_number: string | null;
           user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
+          status?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
         };
         Insert: {
-          created_at?: string;
-          credit_bureau: string;
-          id?: string;
-          letter_content: string;
-          mailing_address: string;
-          shipping_label_url?: string | null;
-          status?: string;
-          tracking_number?: string | null;
+          id: string;
           user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
+          status?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
         };
         Update: {
-          created_at?: string;
-          credit_bureau?: string;
-          id?: string;
-          letter_content?: string;
-          mailing_address?: string;
-          shipping_label_url?: string | null;
+          id: string;
+          user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
           status?: string;
-          tracking_number?: string | null;
-          user_id?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
         };
         Relationships: [];
       };
@@ -49,32 +55,26 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          file_path: string;
-          file_name: string;
-          upload_date: string;
-          status: string;
-          analysis_summary: Json | null;
-          error_message: string | null;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
         };
         Insert: {
-          id?: string;
+          id: string;
           user_id: string;
-          file_path: string;
-          file_name: string;
-          upload_date: string;
-          status: string;
-          analysis_summary?: Json | null;
-          error_message?: string | null;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
         };
         Update: {
-          id?: string;
-          user_id?: string;
-          file_path?: string;
-          file_name?: string;
-          upload_date?: string;
-          status?: string;
-          analysis_summary?: Json | null;
-          error_message?: string | null;
+          id: string;
+          user_id: string;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
         };
         Relationships: [
           {
@@ -87,25 +87,61 @@ export type Database = {
       };
       profiles: {
         Row: {
-          avatar_url: string | null;
-          first_name: string | null;
-          last_name: string | null;
           id: string;
-          updated_at: string | null;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
         };
         Insert: {
-          avatar_url?: string | null;
-          first_name?: string | null;
-          last_name?: string | null;
           id: string;
-          updated_at?: string | null;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
         };
         Update: {
-          avatar_url?: string | null;
-          first_name?: string | null;
-          last_name?: string | null;
-          id?: string;
-          updated_at?: string | null;
+          id: string;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
         };
         Relationships: [
           {
@@ -120,48 +156,234 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          creditor: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
           account_number: string;
-          status: string;
-          type: string;
-          balance: number;
+          credit_bureau: string | null;
           date_opened: string;
-          credit_line: number;
-          monthly_payment: number;
-          account_condition: string;
-          created_at: string | null;
+          isNegative: boolean | false;
         };
         Insert: {
-          id?: string;
+          id: string;
           user_id: string;
-          creditor: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
           account_number: string;
-          status: string;
-          type: string;
-          balance: number;
+          credit_bureau: string | null;
           date_opened: string;
-          credit_line: number;
-          monthly_payment: number;
-          account_condition: string;
-          created_at?: string | null;
+          isNegative: boolean | false;
         };
         Update: {
-          id?: string;
-          user_id?: string;
-          creditor?: string;
-          account_number?: string;
-          status?: string;
-          type?: string;
-          balance?: number;
-          date_opened?: string;
-          credit_line?: number;
-          monthly_payment?: number;
-          account_condition?: string;
-          created_at?: string | null;
+          id: string;
+          user_id: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
+          account_number: string;
+          credit_bureau: string | null;
+          date_opened: string;
+          isNegative: boolean | false;
         };
         Relationships: [
           {
             foreignKeyName: "tradelines_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      user_documents: {
+        Row: {
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
+        Update: {
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_documents_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      credit_bureau: {
+        Row: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Insert: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Update: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Relationships: [];
+      };
+      dispute_letter: {
+        Row: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Insert: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Update: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "dispute_letter_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      documents: {
+        Row: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Insert: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Update: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      user_roles: {
+        Row: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Insert: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Update: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey";
             columns: ["user_id"];
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -183,3 +405,114 @@ export type Database = {
     };
   };
 };
+
+type DefaultSchema = Database[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof Database },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

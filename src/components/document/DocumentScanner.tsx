@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../../supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { FileUploadZone } from "./FileUploadZone";
 import { ScanStatus } from "./ScanStatus";

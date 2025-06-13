@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,11 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const upstageApiKey = Deno.env.get('UPSTAGE_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-    if (!openaiApiKey || !supabaseUrl || !supabaseAnonKey) {
+    if (!upstageApiKey || !supabaseUrl || !supabaseAnonKey) {
       throw new Error('Missing necessary environment variables.');
     }
 
@@ -56,46 +57,73 @@ serve(async (req) => {
       new Uint8Array(fileData).reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const extraction_response = await fetch('https://api.upstage.ai/v1/information-extraction/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${upstageApiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o", // recommended for vision tasks
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert at extracting structured information from credit reports. Identify all accounts, especially negative items. Include creditor names, account numbers, balances, payment status, and dates reported. Provide structured JSON data."
-          },
-          {
+        model: "information-extract",
+        messages: [{
             role: "user",
             content: [
-              {
-                type: "text",
-                text: "Extract structured data from the attached credit report. Return the data as JSON."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${fileType};base64,${base64Data}`
+                {
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${fileType};base64,${base64Data}`,
+                    },
+                },
+            ],
+        }],
+        response_format: {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "document_schema",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "account_number": {
+                            "type": "string",
+                            "description": "tradeline account number"
+                        },
+                        "account_name": {
+                            "type": "string",
+                            "description": "Name of the Creditor or agency"
+                        },
+                        "balance": {
+                            "type": "string",
+                            "description": "amount owed"
+                        },
+                        "date_opened": {
+                            "type": "string",
+                            "description": "date the account was opened"
+                        },
+                        "monthly_payment": {
+                            "type": "string",
+                            "description": "monthly payment amount`"
+                        },
+                        "type": {
+                            "type": "string",
+                            "description": "what type of account"
+                        },
+                        "status": {
+                            "type": "string",
+                            "description": "The status of the tradeline"
+                        }
+                    }
                 }
-              }
-            ]
-          }
-        ],
-        max_tokens: 4000,
-        response_format: { type: "json_object" }
+            }
+        },
       })
     });
 
-    if (!openaiResponse.ok) {
-      const errorDetail = await openaiResponse.text();
-      throw new Error(`OpenAI API error: ${errorDetail}`);
+    if (!extraction_response.ok) {
+      const errorDetail = await extraction_response.text();
+      throw new Error(`Upstage API error: ${errorDetail}`);
     }
 
-    const { choices } = await openaiResponse.json();
+    const { choices } = await extraction_response.json();
     const extractedContent = choices[0]?.message?.content;
 
     if (!extractedContent) {

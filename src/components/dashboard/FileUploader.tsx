@@ -13,8 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { supabase } from "@/integrations/supabase/client";
-import { TablesInsert } from "@/integrations/supabase/types";
+import { supabase } from "../../../supabase/client";
+import { TablesInsert } from "../../supabase/types/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
 const TOAST_DURATION = 3000;

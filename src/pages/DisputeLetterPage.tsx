@@ -61,7 +61,7 @@ const DisputeLetterPage = () => {
   };
 
   // Only allow selection of negative tradelines
-  const negativeTradelines = tradelines.filter((t) => t.isNegative);
+  const Tradelines = tradelines.filter((t) => t.isNegative);
 
   return (
    <MainLayout>
@@ -76,7 +76,7 @@ const DisputeLetterPage = () => {
           ) : (
             <>
               <TradelineList
-                tradelines={negativeTradelines}
+                tradelines={tradelines}
                 selected={selectedTradelines}
                 setSelected={setSelectedTradelines}
                 onAddManual={() => toast({ title: "Info", description: "Manual add not available here." })}

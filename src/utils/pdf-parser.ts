@@ -2,6 +2,8 @@ import * as fs from "fs";
 import OpenAI from "openai";
 
 export async function parsePdfDocument(filePath: string, apiKey: string) {
+    console.log("PDF-PARSER: parsePdfDocument - filePath:", filePath);
+    console.log("PDF-PARSER: parsePdfDocument - apiKey:", apiKey);
     const mimeType = "application/pdf";
 
     const openai = new OpenAI({
@@ -65,5 +67,6 @@ export async function parsePdfDocument(filePath: string, apiKey: string) {
         }
     });
 
+    console.log("parsePdfDocument - extraction_response:", extraction_response);
     return JSON.parse(extraction_response.choices[0].message.content || '{}');
 }

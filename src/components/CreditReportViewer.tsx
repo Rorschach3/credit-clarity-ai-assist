@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { aiService, Account } from "@/utils/ai-service";
+import { aiService } from "@/utils/ai-service";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { z } from "zod";
+import { AccountSchema, Account } from "@/utils/ai-service";
 
-interface CreditReportViewerProps {
-  fileUrl: string;
-  bureau: string;
-  onClose: () => void;
-  ocrText: string;
-}
+const CreditReportViewerPropsSchema = z.object({
+  fileUrl: z.string(),
+  bureau: z.string(),
+  onClose: z.function().args().returns(z.void()),
+  ocrText: z.string(),
+});
 
-const CreditReportViewer: React.FC<CreditReportViewerProps> = ({ fileUrl, bureau, onClose, ocrText }) => {
+type CreditReportViewerProps = z.infer<typeof CreditReportViewerPropsSchema>;
+
+
+const CreditReportViewer: React.FC<CreditReportViewerProps> = (props) => {
+  const { fileUrl, bureau, onClose, ocrText } = CreditReportViewerPropsSchema.parse(props);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [labeledAccounts, setLabeledAccounts] = useState<(Account & { isNegative: boolean; reason: string })[]>([]);
 
@@ -18,7 +24,8 @@ const CreditReportViewer: React.FC<CreditReportViewerProps> = ({ fileUrl, bureau
     const loadAccounts = async () => {
       try {
         const accts = await aiService.ExtractedAccounts(ocrText);
-        setAccounts(accts);
+        const validatedAccounts = z.array(AccountSchema).parse(accts);
+        setAccounts(validatedAccounts);
       } catch (err) {
         console.error("Error loading accounts:", err);
       }

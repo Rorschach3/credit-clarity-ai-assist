@@ -1,117 +1,164 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { parseTradelinesFromText, saveTradelinesToDatabase } from "../../../src/utils/tradelineParser.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.2';
+import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
 
-const corsHeaders = {
- "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+interface WebhookRequest {
+ file: string; // Base64 encoded file
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-  return new Response(null, { headers: corsHeaders });
- }
+Deno.serve(async (req: Request) => {
+  console.log("Incoming request method:", req.method); // Log the incoming request method
 
- try {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-  const authHeader = req.headers.get("authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
-
-    if (userError || !user) throw new Error("User not authenticated");
-
-    const body = await req.json();
-    const { fileName, fileContentBase64 } = body;
-
-    if (!fileName || !fileContentBase64) {
-      throw new Error("Missing fileName or fileContentBase64");
-    }
-
-    const fileContent = Uint8Array.from(atob(fileContentBase64), (c) => c.charCodeAt(0));
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("credit-reports")
-      .upload(`${user.id}/${fileName}`, fileContent, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    if (uploadError) throw uploadError;
-
-  // Extract text from the PDF file
-  const { data: fileData, error: downloadError } = await supabase.storage
-   .from("credit-reports")
-   .download(uploadData.path);
-
-  if (downloadError) throw downloadError;
-
-  // Convert the downloaded file data to a Uint8Array
-  const uint8Array = new Uint8Array(await fileData.arrayBuffer());
-
-  // Extract text from the PDF file
-  const pdfText = await extractTextFromPdf(uint8Array);
-
-  // Parse tradelines from the extracted text
-  const tradelines = parseTradelinesFromText(pdfText);
-
-  // Save tradelines to the database
-  await saveTradelinesToDatabase(tradelines, user.id);
-
-  const { error: dbError } = await supabase
-     .from("credit_reports")
-     .insert({
-        user_id: user.id,
-        file_path: uploadData?.path,
-        file_name: fileName,
-        uploaded_at: new Date().toISOString(),
-      });
-
-    if (dbError) throw dbError;
-
-    return new Response(
-      JSON.stringify({ message: "File uploaded successfully" }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-        status: 200,
-      }
-    );
-  } catch (error: any) {
-    console.error("Upload error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-        status: 400,
-      }
-    );
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
+    });
   }
-});
 
-async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
-  // Import pdf-parse dynamically to avoid issues in environments where it's not available
-  const pdfParse = (await import('pdf-parse')).default;
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ message: `Method ${req.method} Not Allowed` }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', 'Allow': 'POST', 'Access-Control-Allow-Origin': '*' },
+    });
+  }
 
   try {
-    const data = await pdfParse(pdfBuffer);
-    return data.text;
-  } catch (error) {
-    console.error("Error extracting text from PDF:", error);
-    throw new Error("Failed to extract text from PDF");
+    const { file } = await req.json() as WebhookRequest;
+
+    if (!file) {
+      console.warn("No file uploaded in request");
+      return new Response(JSON.stringify({ message: 'No file uploaded' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate Base64 format
+    if (!file.startsWith('data:application/pdf;base64,')) {
+      console.warn("Invalid Base64 format");
+      return new Response(JSON.stringify({ message: 'Invalid file format. Expected Base64 encoded PDF.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const fileBuffer = Uint8Array.from(atob(file.split(',')[1]), c => c.charCodeAt(0));
+    const fileSizeInBytes = fileBuffer.byteLength;
+    console.log("File size after Base64 decoding:", fileSizeInBytes); // Added logging
+
+    const filename = `credit-report-${uuidv4()}.pdf`;
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false,
+        },
+      }
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ message: 'Unauthorized: No Authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error('Supabase Auth Error:', userError);
+      return new Response(JSON.stringify({ message: 'Unauthorized: Invalid token or user not found' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = user.id;
+
+    const maxFileSizeInBytes = 10 * 1024 * 1024; // 10MB
+
+    if (fileSizeInBytes > maxFileSizeInBytes) {
+      return new Response(JSON.stringify({ message: 'File size exceeds 10MB' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Upload file to Supabase Storage
+    const { data, error: uploadError } = await supabaseClient.storage
+      .from('credit-reports')
+      .upload(`${userId}/${filename}`, fileBuffer, {
+        contentType: 'application/pdf',
+        upsert: false, // Do not upsert, create new file
+      });
+
+    if (uploadError) {
+      console.error('Supabase Storage Error:', uploadError);
+      return new Response(JSON.stringify({ message: 'Failed to upload file to storage' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const storagePath = data.path;
+
+    // Save file metadata to Supabase database
+    // 1. Insert into encrypted_report_content
+    const { data: encryptionResult, error: contentError } = await supabaseClient
+      .from('encrypted_report_content')
+      .insert([
+        {
+          encrypted_data: fileBuffer, // Storing raw buffer, ensure this is handled securely
+        },
+      ])
+      .select('content_id')
+      .single();
+
+    if (contentError) {
+      console.error('Supabase Database Error (encrypted_report_content):', contentError);
+      return new Response(JSON.stringify({ message: 'Failed to save encrypted file content to database' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 2. Insert into credit_reports
+    const { error: reportError } = await supabaseClient
+      .from('credit_reports')
+      .insert([
+        {
+          user_id: userId,
+          content_id: encryptionResult?.content_id,
+          storage_path: storagePath,
+        },
+      ]);
+
+    if (reportError) {
+      console.error('Supabase Database Error (credit_reports):', reportError);
+      return new Response(JSON.stringify({ message: 'Failed to save file metadata to database' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ message: 'File uploaded successfully', storagePath }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error: unknown) {
+    console.error('Upload Error:', error);
+    return new Response(JSON.stringify({ message: error instanceof Error ? error.message : 'Failed to upload file' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-}
+});

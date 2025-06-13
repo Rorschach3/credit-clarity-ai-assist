@@ -434,7 +434,7 @@ interface TradelineDbRow {
   type: string | null; // Assuming type can be null
   balance: number;
   date_opened: string | null; // Assuming date_opened can be null
-  credit_line: number | null; // Assuming credit_line can be null
+  credit_limit: number | null; // Assuming credit_limit can be null
   monthly_payment: number | null; // Assuming monthly_payment can be null
   account_condition: string | null; // Assuming account_condition can be null
   // Removed negative_reason, is_negative, raw_text based on TypeScript error
@@ -564,7 +564,7 @@ export async function <span class="fstat-no" title="function not covered" >saveT
     type: "", // Assuming type is a string, adjust if needed
     balance: t.balance,
     date_opened: t.dateOpened,
-    credit_line: null, // Assuming nullable
+    credit_limit: null, // Assuming nullable
     monthly_payment: null, // Assuming nullable
     account_condition: null, // Assuming nullable
     // Do not include negative_reason, is_negative, raw_text if they are not in the DB schema

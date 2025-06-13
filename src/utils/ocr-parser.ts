@@ -39,6 +39,9 @@ export function sanitizeText(text: string): string {
   for (const pattern of attributionPatterns) {
     sanitized = sanitized.replace(pattern, '');
   }
+  console.log("OCR-PARSER: sanitizeText input:", text);
+  const sanitizedText = sanitized;
+  console.log("OCR-PARSER: sanitizeText output:", sanitizedText);
 
   return sanitized
     .replace(/[^\S\r\n]+/g, ' ')      // collapse weird spaces
@@ -69,6 +72,9 @@ export const parseAccountNumbers = (text: string): ParsedAccount[] => {
           normalized: account,
           context,
         };
+        console.log("parseAccountNumbers - raw:", raw);
+        console.log("parseAccountNumbers - account:", account);
+        console.log("parseAccountNumbers - context:", context);
         try {
           ParsedAccountSchema.parse(parsedAccount);
           matches.push(parsedAccount);

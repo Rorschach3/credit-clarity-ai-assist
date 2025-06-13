@@ -1,10 +1,10 @@
 import React from "react";
 import { GroupedTradeline, Bureau } from "@/utils/groupTradelinesByAccount";
 
-const BUREAUS: { key: Bureau; label: string; color: string }[] = [
-  { key: "equifax", label: "Equifax", color: "bg-green-200" },
-  { key: "transunion", label: "TransUnion", color: "bg-green-200" },
-  { key: "experian", label: "Experian", color: "bg-green-200" },
+const BUREAUS: { key: Bureau; label: string }[] = [
+  { key: "equifax", label: "Equifax" },
+  { key: "transunion", label: "TransUnion" },
+  { key: "experian", label: "Experian" },
 ];
 
 type FieldKey =
@@ -36,6 +36,8 @@ const FIELDS: FieldConfig[] = [
   { key: "disputeCount", label: "Dispute Count" },
 ];
 
+const NEGATIVE_STATUSES = ["chargeoff", "collections", "latepayment"];
+
 function isInconsistent(values: (string | number | undefined)[]) {
   const filtered = values.filter((v) => v !== undefined && v !== "");
   return new Set(filtered).size > 1;
@@ -44,44 +46,57 @@ function isInconsistent(values: (string | number | undefined)[]) {
 export const TradelineGrid: React.FC<{ tradelines: GroupedTradeline[] }> = ({ tradelines }) => {
   return (
     <div className="space-y-8">
-      {tradelines.map((group) => (
-        <div key={group.key} className="overflow-x-auto rounded border shadow bg-white">
-          <table className="min-w-[600px] w-full text-sm">
-            <thead>
-              <tr>
-                <th className="bg-slate-800 text-white px-3 py-2 text-left w-40"></th>
-                {BUREAUS.map((b) => (
-                  <th key={b.key} className={`px-3 py-2 text-center font-bold ${b.color}`}>{b.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {FIELDS.map((field) => {
-                const values = BUREAUS.map((b) => {
-                  const t = group[b.key];
-                  let v: string | number | undefined = t ? t[field.key] : "";
-                  if (field.format) v = field.format(v);
-                  return v;
-                });
-                const inconsistent = isInconsistent(values);
-                return (
-                  <tr key={field.key}>
-                    <td className="bg-slate-700 text-white px-3 py-2 font-semibold">{field.label}</td>
-                    {values.map((v, i) => (
-                      <td
-                        key={BUREAUS[i].key}
-                        className={`px-3 py-2 border ${inconsistent ? "bg-red-100 text-red-700 font-bold" : ""}`}
-                      >
-                        {v || <span className="text-slate-400">—</span>}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
+      {tradelines.map((group) => {
+        const statusValues = BUREAUS.map((b) => {
+          const t = group[b.key];
+          const s = t?.status?.toLowerCase();
+          return s && NEGATIVE_STATUSES.includes(s);
+        });
+
+        return (
+          <div key={group.key} className="overflow-x-auto rounded border shadow bg-white">
+            <table className="min-w-[600px] w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="bg-slate-800 text-white px-3 py-2 text-left w-40">Bureau</th>
+                  {BUREAUS.map((b, i) => (
+                    <th
+                      key={b.key}
+                      className={`px-3 py-2 text-center font-bold text-black ${statusValues[i] ? "bg-red-200 text-red-800" : "bg-green-200 text-green-800"}`}
+                    >
+                      {b.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {FIELDS.map((field) => {
+                  const values = BUREAUS.map((b) => {
+                    const t = group[b.key];
+                    let v: string | number | undefined = t ? t[field.key] : "";
+                    if (field.format) v = field.format(v);
+                    return v;
+                  });
+                  const inconsistent = isInconsistent(values);
+                  return (
+                    <tr key={field.key}>
+                      <td className="bg-slate-700 text-white px-3 py-2 font-semibold">{field.label}</td>
+                      {values.map((v, i) => (
+                        <td
+                          key={BUREAUS[i].key}
+                          className={`px-3 py-2 border text-center: ""}`}
+                        >
+                          {v || <span className="text-slate-400">—</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </div>
   );
 };

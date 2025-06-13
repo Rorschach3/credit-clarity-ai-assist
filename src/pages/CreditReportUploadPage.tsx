@@ -1,11 +1,9 @@
 "use client";
-
 import React, { useState, useEffect, useRef, ChangeEvent } from "react";
 import { createWorker, Worker } from "tesseract.js";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,9 +13,11 @@ import MainLayout from "@/components/layout/MainLayout";
 import {
   saveTradelinesToDatabase,
   parseTradelinesFromText,
-  ParsedTradeline,
 } from "@/utils/tradelineParser";
 import { ManualTradelineModal } from "@/components/disputes/ManualTradelineModal";
+import { ParsedTradelineSchema, ParsedTradeline } from "@/utils/tradelineParser";
+import { z, ZodError, ZodIssue } from "zod";
+import { toast } from "@/components/ui/use-toast";
 
 const CreditReportUploadPage = () => {
   const { user } = useAuth();
@@ -52,35 +52,86 @@ const CreditReportUploadPage = () => {
 
     try {
       const buffer = await file.arrayBuffer();
+      console.log("PDF buffer created");
       const images = await pdfToImages(buffer);
+      console.log("PDF converted to images", images.length);
       let textContent = "";
       for (let i = 0; i < images.length; i++) {
         if (!workerRef.current) throw new Error("Worker not initialized");
-        const { data } = await workerRef.current.recognize(images[i]);
-        textContent += data.text + "\n";
-        setUploadProgress(((i + 1) / images.length) * 100);
+        try {
+          const { data } = await workerRef.current.recognize(images[i]);
+          textContent += data.text + "\n";
+          setUploadProgress(((i + 1) / images.length) * 100);
+          console.log(`Image ${i + 1} processed`);
+        } catch (ocrError: unknown) {
+          console.error("OCR error:", ocrError);
+          toast({ title: "OCR Error", description: `Failed to recognize text in image ${i + 1}.` });
+        }
       }
+      console.log("All images processed, parsing tradelines");
       const parsed = parseTradelinesFromText(textContent);
-      setTradelines(parsed);
-      if (user) await saveTradelinesToDatabase(parsed, user.id);
-      toast({ title: "Upload complete", description: "Tradelines extracted." });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to process PDF." });
+      try {
+        console.log("Parsed tradelines:", parsed);
+        const validatedTradelines = z.array(ParsedTradelineSchema).parse(parsed);
+        setTradelines(validatedTradelines);
+        if (user) {
+          try {
+            await saveTradelinesToDatabase(validatedTradelines, user.id);
+            toast({ title: "Upload complete", description: "Tradelines extracted and saved." });
+          } catch (dbError: unknown) {
+            console.error("Database error:", dbError);
+            toast({ title: "Database Error", description: "Failed to save tradelines to the database." });
+          }
+        }
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          toast({
+            title: "Validation Error",
+            description: error.errors.map((e: ZodIssue) => e.message).join(", "),
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to parse tradelines.",
+          });
+        }
+        console.error("Error parsing tradelines:", error);
+      }
+    } catch (error: unknown) {
+      console.error("File processing error:", error);
+      toast({ title: "File Error", description: `Failed to process PDF: ${error.message}` });
     } finally {
       setIsUploading(false);
     }
   };
 
   const updateTradeline = (index: number, updated: Partial<ParsedTradeline>) => {
-    setTradelines((prev) => {
-      const newTradelines = [...prev];
-      newTradelines[index] = { ...newTradelines[index], ...updated };
-      return newTradelines;
-    });
+    try {
+      const newTradeline = { ...tradelines[index], ...updated };
+      ParsedTradelineSchema.parse(newTradeline); // Validate the updated tradeline
+      setTradelines((prev: ParsedTradeline[]) => {
+        const newTradelines = [...prev];
+        newTradelines[index] = newTradeline;
+        return newTradelines;
+      });
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors.map((e: ZodIssue) => e.message).join(", "),
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update tradeline.",
+        });
+      }
+      console.error("Error updating tradeline:", error);
+    }
   };
 
   const deleteTradeline = (index: number) => {
-    setTradelines((prev) => prev.filter((_, i) => i !== index));
+    setTradelines((prev: ParsedTradeline[]) => prev.filter((_, i) => i !== index));
   };
 
   const handleProceed = () => {
@@ -147,7 +198,7 @@ const CreditReportUploadPage = () => {
                       type="number"
                       value={t.balance !== undefined ? t.balance : ""}
                       onChange={(e) =>
-                        updateTradeline(i, { balance: parseFloat(e.target.value) || 0 })
+                        updateTradeline(i, { balance: String(parseFloat(e.target.value) || 0) })
                       }
                     />
                   </div>
