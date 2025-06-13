@@ -1,49 +1,68 @@
+import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import '@testing-library/jest-dom/extend-expect';
-import DisputeWizardPage from "@/pages/DisputeWizardPage";
 import "@testing-library/jest-dom";
+
+// Mock the AI service to control outputs
+jest.mock("@/services/aiService", () => ({
+  analyzeDisputeText: jest.fn().mockResolvedValue({
+    accounts: [
+      { creditorName: "CAPITAL ONE", accountNumber: "1234XXXX", status: "collection", balance: 0, dateOpened: "", isNegative: true, negativeReason: "Wrong" }
+    ],
+    summary: ""
+  }),
+  generateDisputeLetter: jest.fn().mockResolvedValue({ letter: "I am formally disputing the following items: CAPITAL ONE " }),
+  saveTradelines: jest.fn().mockResolvedValue(undefined)
+}));
+
+import DisputeWizardPage from "@/app/dispute-wizard/page";
+import { analyzeDisputeText, generateDisputeLetter, saveTradelines } from "@/services/aiService";
 
 describe("DisputeWizardPage integration flow", () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it("renders parsed tradelines and generates a dispute letter", async () => {
+  it("processes a PDF file, shows extracted accounts, and generates a dispute letter", async () => {
     render(<DisputeWizardPage />);
 
-    const inputText = `
-      CAPITAL ONE
-      Account #: 1234XXXX
-      Status: Collection
-      Reason: Wrong
-    `;
+    // Simulate uploading a PDF file
+    const file = new File(["dummy content"], "report.pdf", { type: "application/pdf" });
+    const fileInput = screen.getByLabelText(/upload credit report/i);
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
-    const creditReportInput = screen.getByLabelText(/credit report text/i);
-    fireEvent.change(creditReportInput, { target: { value: inputText } });
-
-    fireEvent.click(screen.getByRole("button", { name: /parse tradelines/i }));
-
+    // Wait for analyzeDisputeText to be called and accounts rendered
     await waitFor(() => {
-      expect(screen.getByText(/CAPITAL ONE/)).toBeInTheDocument();
+      expect(analyzeDisputeText).toHaveBeenCalled();
+      expect(screen.getByText("CAPITAL ONE")).toBeInTheDocument();
     });
 
+    // Fill in user info
     fireEvent.change(screen.getByLabelText(/your name/i), {
-      target: { value: "John Doe" },
+      target: { value: "John Doe" }
+    });
+    fireEvent.change(screen.getByLabelText(/address/i), {
+      target: { value: "123 Main St" }
     });
 
-    fireEvent.change(screen.getByLabelText(/your address/i), {
-      target: { value: "123 Main St" },
-    });
+    // Select the account
+    fireEvent.click(screen.getByText("CAPITAL ONE"));
 
-    const addButton = screen.getByRole("button", { name: /add/i });
-    fireEvent.click(addButton);
-
+    // Click generate letter
     fireEvent.click(screen.getByRole("button", { name: /generate letter/i }));
 
-    const output = await screen.findByLabelText(/generated dispute letter/i);
-    expect((output as HTMLInputElement).value).toMatch(/I am formally disputing the following/i);
-    expect((output as HTMLInputElement).value).toMatch(/CAPITAL ONE/);
-    expect((output as HTMLInputElement).value).toMatch(/1234XXXX/);
-    expect((output as HTMLInputElement).value).toMatch(/Wrong/);
+    // saveTradelines and generateDisputeLetter should be called
+    await waitFor(() => {
+      expect(saveTradelines).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ accountNumber: "1234XXXX" })
+        ]),
+        expect.any(String)
+      );
+      expect(generateDisputeLetter).toHaveBeenCalled();
+    });
+
+    // The generated letter should appear
+    const letterBox = screen.getByRole("textbox", { name: /generated letter/i });
+    expect(letterBox).toHaveValue(expect.stringContaining("I am formally disputing the following items: CAPITAL ONE"));
   });
 });
