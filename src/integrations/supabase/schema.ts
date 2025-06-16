@@ -4,224 +4,410 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
   public: {
     Tables: {
-      audit_history: {
-        Row: {
-          id: number
-          new_values: Json | null
-          old_values: Json | null
-          operation: string | null
-          performed_at: string | null
-          performed_by: string | null
-          record_id: string
-          table_name: string
-        }
-        Insert: {
-          id?: never
-          new_values?: Json | null
-          old_values?: Json | null
-          operation?: string | null
-          performed_at?: string | null
-          performed_by?: string | null
-          record_id: string
-          table_name: string
-        }
-        Update: {
-          id?: never
-          new_values?: Json | null
-          old_values?: Json | null
-          operation?: string | null
-          performed_at?: string | null
-          performed_by?: string | null
-          record_id?: string
-          table_name?: string
-        }
-        Relationships: []
-      }
       disputes: {
         Row: {
-          created_at: string | null
-          credit_report_id: string
-          id: string
-          mailing_address: string
-          modified_at: string | null
-          modified_by: string | null
-          retention_date: string | null
-          status: string
-          user_id: string
-        }
+          id: string;
+          user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
+          status?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
+        };
         Insert: {
-          created_at?: string | null
-          credit_report_id: string
-          id?: string
-          mailing_address: string
-          modified_at?: string | null
-          modified_by?: string | null
-          retention_date?: string | null
-          status: string
-          user_id: string
-        }
+          id: string;
+          user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
+          status?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
+        };
         Update: {
-          created_at?: string | null
-          credit_report_id?: string
-          id?: string
-          mailing_address?: string
-          modified_at?: string | null
-          modified_by?: string | null
-          retention_date?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          id: string;
+          user_id: string;
+          credit_report_id?: string;
+          created_at: Date;
+          status?: string;
+          mailing_address?: string;
+          modified_by?: string | null;
+          modified_at?: Date | null;
+          retention_date?: Date | null;
+          email: string | null;
+          lob_id?: string | null;
+        };
+        Relationships: [];
+      };
+      credit_reports: {
+        Row: {
+          id: string;
+          user_id: string;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
+        };
+        Update: {
+          id: string;
+          user_id: string;
+          encrypted_content: string;
+          encryption_key: string;
+          report_date?: Date;
+          expires_at?: Date;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "credit_reports_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       profiles: {
         Row: {
-          city: string | null
-          created_at: string
-          date_of_birth: string | null
-          email: string | null
-          first_name: string | null
-          last_name: string | null
-          id: string
-          phone_number: string | null
-          social_security: string | null
-          state: string | null
-          street_address1: string | null
-          street_address2: string | null
-          subscribed: boolean
-          zip_code: number | null
-        }
+          id: string;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
+        };
         Insert: {
-          city?: string | null
-          created_at?: string
-          date_of_birth?: string | null
-          email?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          id: string
-          phone_number?: string | null
-          social_security?: string | null
-          state?: string | null
-          street_address1?: string | null
-          street_address2?: string | null
-          subscribed?: boolean
-          zip_code?: number | null
-        }
+          id: string;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
+        };
         Update: {
-          city?: string | null
-          created_at?: string
-          date_of_birth?: string | null
-          email?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          id?: string
-          phone_number?: string | null
-          social_security?: string | null
-          state?: string | null
-          street_address1?: string | null
-          street_address2?: string | null
-          subscribed?: boolean
-          zip_code?: number | null
-        }
-        Relationships: []
-      }
+          id: string;
+          email: string;
+          created_at: Date;
+          phone_number?: string;
+          address1?: string;
+          ssn: string;
+          city?: string;
+          state?: string;
+          zip?: number | null;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          user_id: string;
+          address2?: string | null;
+          dob?: Date | null;
+          is_super_admin: boolean | false;
+          role: string | 'user';
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey";
+            columns: ["id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       tradelines: {
         Row: {
-          account_condition: string
-          account_number: string
-          balance: number
-          created_at: string | null
-          credit_line: number
-          creditor: string
-          date_opened: string
-          dispute_count: number | null
-          id: string
-          monthly_payment: number
-          status: string
-          type: string
-          user_id: string
-        }
+          id: string;
+          user_id: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
+          account_number: string;
+          credit_bureau: string | null;
+          date_opened: string;
+          isNegative: boolean | false;
+          rawText: string;
+        };
         Insert: {
-          account_condition: string
-          account_number: string
-          balance: number
-          created_at?: string | null
-          credit_line: number
-          creditor: string
-          date_opened: string
-          dispute_count?: number | null
-          id?: string
-          monthly_payment: number
-          status: string
-          type: string
-          user_id: string
-        }
+          id: string;
+          user_id: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
+          account_number: string;
+          credit_bureau: string | null;
+          date_opened: string;
+          isNegative: boolean | false;
+          rawText: string;
+        };
         Update: {
-          account_condition?: string
-          account_number?: string
-          balance?: number
-          created_at?: string | null
-          credit_line?: number
-          creditor?: string
-          date_opened?: string
-          dispute_count?: number | null
-          id?: string
-          monthly_payment?: number
-          status?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      transcripts: {
+          id: string;
+          user_id: string;
+          creditor_name: string;
+          account_balance?: string | 0;
+          account_type?: string;
+          account_status?: string;
+          created_at: Date;
+          dispute_count: number | 0;
+          credit_limit?: string | 0;
+          monthly_payment?: string | 0;
+          account_number: string;
+          credit_bureau: string | null;
+          date_opened: string;
+          isNegative: boolean | false;
+          rawText: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tradelines_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      user_documents: {
         Row: {
-          content: string | null
-          created_at: string | null
-          id: string
-          tags: string[] | null
-          title: string | null
-          transcript_file: string | null
-          updated_at: string | null
-        }
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
         Insert: {
-          content?: string | null
-          created_at?: string | null
-          id: string
-          tags?: string[] | null
-          title?: string | null
-          transcript_file?: string | null
-          updated_at?: string | null
-        }
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
         Update: {
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          tags?: string[] | null
-          title?: string | null
-          transcript_file?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-    }
+          id: string;
+          user_id: string;
+          created_at?: Date;
+          document_type?: string;
+          file_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_documents_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      credit_bureau: {
+        Row: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Insert: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Update: {
+          id: string;
+          created_at: Date;
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          phone_number?: string | null;
+        };
+        Relationships: [];
+      };
+      dispute_letter: {
+        Row: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Insert: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Update: {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          email: string;
+          tradelines?: string;
+          created_on: Date;
+          user_id: string;
+          lob_id?: string;
+          delivery_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "dispute_letter_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      documents: {
+        Row: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Insert: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Update: {
+          id: string;
+          content?: string;
+          metadata?: string;
+          embedding?: string
+          user_id: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      user_roles: {
+        Row: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Insert: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Update: {
+          user_id: string;
+          role: string;
+          email: string;
+          assigned_at: Date;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
 

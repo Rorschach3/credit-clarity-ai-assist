@@ -1,45 +1,37 @@
+// src/utils/tradelineParser.ts
 import { sanitizeText } from "./ocr-parser";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import { standardizeCreditorName } from "./creditorMatching";
+import { v4 as uuidv4 } from 'uuid';
 
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+// Zod schema for individual parsed tradeline
 export const ParsedTradelineSchema = z.object({
-  creditorName: z.string(),
-  accountNumber: z.string(),
-  status: z.string(),
-  isNegative: z.boolean(),
-  negativeReason: z.string().nullable().optional(),
-  balance: z.number(),
-  dateOpened: z.string().nullable(),
-  rawText: z.string(),
+  id: z.string().uuid().optional(),
+  user_id: z.string().uuid().optional(),
+  creditor_name: z.string().optional(),
+  account_number: z.string().optional(),
+  account_status: z.string().optional(),
+  account_type: z.string().optional(),
+  account_balance: z.union([z.string(), z.number(), z.null()]).default(""),
+  credit_limit: z.union([z.string(), z.number(), z.null()]).default(""),
+  date_opened: z.string().optional(),
+  is_negative: z.boolean().optional().default(false),
+  raw_text: z.string().optional(),
+  monthly_payment: z.string().optional(),
+  dispute_count: z.number().optional().default(0),
+  credit_bureau: z.string().optional(),
+  // created_at: z.string().optional().default(new Date().toISOString()),
 });
-
 export type ParsedTradeline = z.infer<typeof ParsedTradelineSchema>;
-
-// Define interface for Supabase tradeline table row based on error feedback
-interface TradelineDbRow {
-  id?: string; // Assuming id is optional and auto-generated
-  user_id: string;
-  creditor: string;
-  account_number: string;
-  status: string;
-  type: string | null; // Assuming type can be null
-  balance: number;
-  date_opened: string | null; // Assuming date_opened can be null
-  credit_line: number | null; // Assuming credit_line can be null
-  monthly_payment: number | null; // Assuming monthly_payment can be null
-  account_condition: string | null; // Assuming account_condition can be null
-  // Removed negative_reason, is_negative, raw_text based on TypeScript error
-  created_at?: string; // Assuming created_at is optional and auto-generated
-  credit_bureau?: string; // Assuming credit_bureau is optional
-  raw_text?: string; // Assuming raw_text is optional, used for storing original text
-}
-
 
 const accountNumberRegexes = [
   /Account\s+[+:]?\s*(\d{4,}[XxXx]*)/i,
   /Account Number\s*[:#]?\s*(\d{4,}[XxXx]*)/i,
-  /\b(\d{4,})(?:X{2,}|\*+)?\b/, // catch partials
-  /Acct\s*#[: ]*\s*(\d{4,}[XxXx]*)/i
+  /\b(\d{4,})(?:X{2,}|\*+)?\b/,
+  /Acct\s*#[: ]*\s*(\d{4,}[XxXx]*)/i,
 ];
 
 const statusKeywords = {
@@ -47,126 +39,131 @@ const statusKeywords = {
   collection: /sent to collections|in collection/i,
   closed: /account closed/i,
   paid: /paid in full/i,
-  open: /open account|current/i
+  open: /open account|current/i,
 };
 
 const negativeRegex = /collection|charge.?off|late/i;
 
-export const parseTradelinesFromText = (text: string): ParsedTradeline[] => {
-  const tradelines: ParsedTradeline[] = [];
-  const sanitizedText = sanitizeText(text);
+/**
+ * Parse raw OCR/text into an array of validated ParsedTradeline objects
+ */
+export function parseTradelinesFromText(text: string): ParsedTradeline[] {
+  const entries = sanitizeText(text)
+    .split(/^(?=CHASE|SCHOOLSFIRST|BANK OF AMERICA|CITIBANK|CAPITAL ONE|AMERICAN EXPRESS|AMEX|DISCOVER|WELLS FARGO|CAPITAL ONE N\.A\.)/mi)
+    .filter((e) => e.trim());
 
-  // Improved regex to split tradelines based on common patterns at the beginning of a line
-  const entries = sanitizedText.split(/^(?=CHASE CARD|SCHOOLSFIRST|BANK OF AMERICA|CITIBANK|CAPITAL ONE|AMEX|DISCOVER|WELLS FARGO|CAPITAL ONE N.A.)/mi);
+  return entries.map((entry) => {
+    const rawCreditorName = entry.match(/^(.*?)(?:\n|Account Number:|Status:)/i)?.[1]?.trim() ?? "Unknown";
+    const creditorName = standardizeCreditorName(rawCreditorName);
 
-  for (const entry of entries) {
-    if (entry.trim() === '') continue; // Skip empty entries
-
-    // Extract creditor name, allowing for more variations
-    const creditorName = entry.match(/^(.*?)(?:\n|Account Number:|Status:)/i)?.[1]?.trim() || 'Unknown';
-
-    let accountNumber = 'N/A';
-    for (const regex of accountNumberRegexes) {
-      const match = entry.match(regex);
-      if (match && match[1]) {
-        accountNumber = match[1].replace(/\s/g, '').trim();
+    let accountNumber = "N/A";
+    for (const rx of accountNumberRegexes) {
+      const m = entry.match(rx);
+      if (m?.[1]) {
+        accountNumber = m[1].trim();
         break;
       }
     }
 
-    let status: string = 'Unknown';
-    let negativeReason: string | undefined;
+    const detected = Object.entries(statusKeywords).find(([, rx]) => rx.test(entry));
+    const accountStatus = detected?.[0] ?? "Unknown";
 
-    // Auto-detect status
-    const detectedStatus = Object.entries(statusKeywords).find(([, regex]) => regex.test(entry));
-    if (detectedStatus) {
-      status = detectedStatus[0];
-    }
+    const isNegative = negativeRegex.test(entry) || negativeRegex.test(accountStatus);
 
-    // Infer "Negative" from reason or status
-    const isNegative = negativeRegex.test(entry) || negativeRegex.test(status);
-    if (isNegative) {
-      const matchedNegativeReason = negativeRegex.exec(entry)?.[0] || negativeRegex.exec(status)?.[0];
-      if (matchedNegativeReason) {
-        negativeReason = matchedNegativeReason;
-      }
-    }
+    const balanceMatch = entry.match(/Balance:?\s*\$([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})?)/);
+    const accountBalance = balanceMatch ? balanceMatch[1].trim() : null;
 
-    // Extract balance
-    const balanceMatch = entry.match(/Balance:\s*\$?([\d,]+\.?\d{0,2})/i);
-    const balance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : 0;
+    const clMatch = entry.match(/Credit Limit:?\s*\$([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})?)/);
+    const creditLimit = clMatch ? clMatch[1].trim() : null;
 
-    // Extract date opened
     const dateOpenedMatch = entry.match(/Date Opened:\s*(\d{2}\/\d{2}\/\d{4})/i);
-    const dateOpened = dateOpenedMatch ? dateOpenedMatch[1] : null;
+    const dateOpened = dateOpenedMatch?.[1] ?? "";
 
-    tradelines.push({
-      creditorName,
-      accountNumber,
-      status,
-      isNegative,
-      negativeReason,
-      balance,
-      dateOpened,
-      rawText: entry.trim(),
+    return ParsedTradelineSchema.parse({
+      user_id: undefined,
+      creditor_name: creditorName,
+      account_number: accountNumber,
+      account_status: detected?.[0] ?? undefined,
+      account_type: undefined,
+      account_balance: accountBalance,
+      credit_limit: creditLimit,
+      date_opened: dateOpened,
+      is_negative: isNegative,
+      raw_text: entry.trim(),
+      monthly_payment: undefined,
+      credit_bureau: undefined,
+      created_at: new Date().toISOString(),
     });
+  });
+}
+// Supabase-generated types for tradelines table
+type TradelineInsert = Database["public"]["Tables"]["tradelines"]["Insert"];
+type TradelineRow = Database["public"]["Tables"]["tradelines"]["Row"];
+
+/**
+ * Persist parsed tradelines into Supabase `tradelines` table
+ */
+export async function saveTradelinesToDatabase(
+  tradelines: ParsedTradeline[],
+  userId: string
+): Promise<void> {
+  if (!tradelines.length) return;
+
+  const rows: TradelineInsert[] = tradelines.map((t) => ({
+    id: uuidv4(),
+    user_id: userId,
+    creditor_name: t.creditor_name || null,
+    account_number: t.account_number || null,
+    account_status: t.account_status || null,
+    account_type: t.account_type || null,
+    account_balance: t.account_balance ?? null,
+    credit_limit: t.credit_limit ?? null,
+    date_opened: t.date_opened || null,
+    is_negative: t.is_negative ?? null,
+    raw_text: t.raw_text,
+    created_at: new Date().toISOString(),
+    dispute_count: t.dispute_count ?? 0,
+    monthly_payment: t.monthly_payment ?? null,
+    credit_bureau: t.credit_bureau ?? null
+  }));
+
+  console.log("Inserting tradelines:", rows);
+  const { error } = await supabase
+    .from("tradelines")
+    .upsert(rows, { onConflict: "user_id,account_number" });
+
+  if (error) {
+    console.error("Error inserting tradelines:", error);
+    throw error;
   }
+}
 
-  return tradelines;
-};
-
-export async function fetchUserTradelines(userId: string): Promise<ParsedTradeline[]> {
+/**
+ * Fetch tradelines for a given user from Supabase
+ */
+export async function fetchUserTradelines(
+  userId: string
+): Promise<ParsedTradeline[]> {
   const { data, error } = await supabase
     .from("tradelines")
     .select("*")
     .eq("user_id", userId);
 
-  if (error) {
-    throw new Error(`Failed to fetch tradelines: ${error.message}`);
-  }
+  if (error) throw error;
+  if (!data) return [];
 
-  if (!data) {
-    return [];
-  }
-
-  // Map database rows to ParsedTradeline type, handling potential missing fields
-  return data.map((row: TradelineDbRow) => ({
-    creditorName: row.creditor,
-    accountNumber: row.account_number,
-    status: row.status,
-    // Infer isNegative and negativeReason if not directly available
-    isNegative: row.status ? negativeRegex.test(row.status) : false,
-    negativeReason: row.status ? negativeRegex.exec(row.status)?.[0] || null : null,
-    balance: row.balance,
-    dateOpened: row.date_opened,
-    rawText: JSON.stringify(row), // Store the whole row as raw text if original raw_text is missing
-  }));
+  return data.map((row) =>
+    ParsedTradelineSchema.parse({
+      creditorName: row.creditor_name,
+      accountNumber: row.account_number,
+      accountStatus: row.account_status,
+      accountType: row.account_type,
+      accountBalance: row.account_balance,
+      creditLimit: row.credit_limit,
+      dateOpened: row.date_opened,
+      isNegative: row.is_negative,
+      rawText: row.raw_text
+    })
+  );
 }
 
-export async function saveTradelinesToDatabase(tradelines: ParsedTradeline[], userId: string): Promise<void> {
-  if (tradelines.length === 0) return;
-
-  // Map ParsedTradeline to database row format with correct keys and types
-  const dbRows: TradelineDbRow[] = tradelines.map((t) => ({
-    user_id: userId,
-    creditor: t.creditorName,
-    account_number: t.accountNumber,
-    status: t.status,
-    type: "", // Assuming type is a string, adjust if needed
-    balance: t.balance,
-    date_opened: t.dateOpened,
-    credit_line: null, // Assuming nullable
-    monthly_payment: null, // Assuming nullable
-    account_condition: null, // Assuming nullable
-    // Do not include negative_reason, is_negative, raw_text if they are not in the DB schema
-    // negative_reason: t.negativeReason,
-    // is_negative: t.isNegative,
-    // raw_text: t.rawText,
-  }));
-
-  const { error } = await supabase.from("tradelines").upsert(dbRows, { onConflict: "user_id,account_number" });
-
-  if (error) {
-    throw new Error(`Failed to save tradelines: ${error.message}`);
-  }
-}
