@@ -53,6 +53,7 @@ const patterns = [
 ];
 
 export const parseAccountNumbers = (text: string): ParsedAccount[] => {
+console.log('[ocr-parser] Raw OCR text input:', text);
   const lines = text.split(/\r?\n/);
   const matches: ParsedAccount[] = [];
 

@@ -35,7 +35,7 @@ export function FileUploader() {
       }
 
       // Validate all files
-      const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+      const maxSizeInBytes = 11 * 1024 * 1024; // 10MB
       for (const file of Array.from(files)) {
         if (file.type !== "application/pdf") {
           toast.error("Please upload only PDF files.");

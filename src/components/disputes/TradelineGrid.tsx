@@ -1,5 +1,5 @@
 import React from "react";
-import { GroupedTradeline, Bureau } from "@/utils/groupTradelinesByAccount";
+import { GroupedTradeline, BureauTradeline, Bureau } from "@/utils/groupTradelinesByAccount";
 
 const BUREAUS: { key: Bureau; label: string; color: string }[] = [
   { key: "equifax", label: "Equifax", color: "bg-green-200" },
@@ -41,7 +41,14 @@ function isInconsistent(values: (string | number | undefined)[]) {
   return new Set(filtered).size > 1;
 }
 
-export const TradelineGrid: React.FC<{ tradelines: GroupedTradeline[] }> = ({ tradelines }) => {
+import { ParsedTradeline } from "@/utils/tradelineParser";
+
+export const TradelineGrid: React.FC<{
+  tradelines: GroupedTradeline[];
+  selected: ParsedTradeline[];
+  setSelected: (selected: ParsedTradeline[]) => void;
+  onAddManual: () => void;
+}> = ({ tradelines, selected, setSelected, onAddManual }) => {
   return (
     <div className="space-y-8">
       {tradelines.map((group) => (
@@ -82,6 +89,8 @@ export const TradelineGrid: React.FC<{ tradelines: GroupedTradeline[] }> = ({ tr
           </table>
         </div>
       ))}
+      <button onClick={onAddManual}>Add Manual Tradeline</button>
+      {/* Placeholder for selection handling */}
     </div>
   );
 };
