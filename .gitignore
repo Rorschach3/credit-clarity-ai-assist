@@ -34,3 +34,4 @@ influxdata-archive_compat.key
 .env
 .roo/mcp.json
 .roomodes
+service-account.json
