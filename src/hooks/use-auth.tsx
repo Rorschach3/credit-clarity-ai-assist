@@ -1,29 +1,36 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<any>;
-  signup: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string) => Promise<{ error?: Error }>;
+  signup: (email: string, password: string) => Promise<{ error?: Error }>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Public hook
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
+};
+
+// Provider
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing session
     const getUser = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error("Error getting session:", error);
           setIsLoading(false);
@@ -42,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user || null);
+        setIsLoading(false);
       }
     );
 
@@ -63,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
       }
 
+      // Don't manually set user here - let the auth state listener handle it
       return { data };
     } catch (error) {
       console.error("Login error:", error);
@@ -91,6 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+      // Don't manually set user here - let the auth state listener handle it
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -99,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Alias for logout to maintain backward compatibility
   const signOut = logout;
 
-  const value = {
+  const value: AuthContextType = {
     user,
     isLoading,
     login,
@@ -109,12 +119,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 };
