@@ -25,7 +25,6 @@ export const ParsedTradelineSchema = z.object({
   account_type: z.enum(["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"]).default("credit_card"),
   account_status: z.enum(["open", "closed", "in_collection", "charged_off", "disputed"]).default("open"),
   credit_bureau: z.enum(["equifax", "transunion", "experian"]).default("equifax"),
-  raw_text: z.string().default(""),
   dispute_count: z.number().optional().default(0),
 });
 
@@ -57,7 +56,6 @@ export async function parseTradelinesFromText(text: string, userId: string): Pro
         account_type: parsed.account_type || "credit_card",
         account_status: parsed.account_status || "open",
         credit_bureau: parsed.credit_bureau || "equifax",
-        raw_text: parsed.raw_text || entry,
         user_id: userId,
         dispute_count: parsed.dispute_count || 0,
       };
@@ -81,7 +79,6 @@ export async function parseTradelinesFromText(text: string, userId: string): Pro
           account_type: "credit_card" as AccountType,
           account_status: "open" as AccountStatus,
           credit_bureau: "equifax" as CreditBureau,
-          raw_text: entry,
           user_id: userId,
           dispute_count: 0,
         };
@@ -114,7 +111,6 @@ export async function saveTradelinesToDatabase(
     credit_limit: typeof tradeline.credit_limit === 'number' ? String(tradeline.credit_limit) : tradeline.credit_limit,
     date_opened: tradeline.date_opened,
     is_negative: tradeline.is_negative,
-    raw_text: tradeline.raw_text,
     account_type: tradeline.account_type,
     account_status: tradeline.account_status,
     credit_bureau: tradeline.credit_bureau,

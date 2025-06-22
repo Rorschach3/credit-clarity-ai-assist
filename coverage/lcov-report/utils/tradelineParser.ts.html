@@ -419,7 +419,6 @@ export const ParsedTradelineSchema = z.object({
   negativeReason: z.string().nullable().optional(),
   balance: z.number(),
   dateOpened: z.string().nullable(),
-  rawText: z.string(),
 });
 &nbsp;
 export type ParsedTradeline = z.infer&lt;typeof ParsedTradelineSchema&gt;;
@@ -517,7 +516,6 @@ export const parseTradelinesFromText = (text: string): ParsedTradeline[] =&gt; {
       negativeReason,
       balance,
       dateOpened,
-      rawText: entry.trim(),
     });
   }
 &nbsp;
@@ -548,7 +546,6 @@ export async function <span class="fstat-no" title="function not covered" >fetch
     negativeReason: row.status ? negativeRegex.exec(row.status)?.[0] || null : null,
     balance: row.balance,
     dateOpened: row.date_opened,
-    rawText: JSON.stringify(row), // Store the whole row as raw text if original raw_text is missing
   }));
 }
 &nbsp;

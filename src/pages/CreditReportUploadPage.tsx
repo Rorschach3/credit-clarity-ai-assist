@@ -102,7 +102,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 const sanitizeAIResponse = (response: string): string => {
   // Remove potential harmful characters and normalize whitespace
   return response
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g, '')
     .trim();
 };
 
@@ -263,6 +263,58 @@ const CreditReportUploadPage = () => {
 
               // Sanitize the response before parsing
               const sanitizedResponse = sanitizeAIResponse(cleanedResponse);
+              try {
+                const parsedAI: AIAnalysisResponse = JSON.parse(sanitizedResponse);
+                setExtractedKeywords(parsedAI.keywords || []);
+                setAiInsights(parsedAI.insights || '');
+                
+                // Convert AI tradelines to ParsedTradeline format and add to existing tradelines
+                if (parsedAI.tradelines && parsedAI.tradelines.length > 0) {
+                  const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
+                    creditor_name: tl.creditor_name || '',
+                    account_number: tl.account_number || '',
+                    account_balance: String(tl.balance || ''),
+                    account_status: tl.status as AccountStatus || 'open',
+                    account_type: tl.account_type as AccountType || 'credit_card',
+                    credit_limit: String(tl.credit_limit || ''),
+                    date_opened: tl.date_opened || '',
+                    monthly_payment: String(tl.monthly_payment || ''),
+                    credit_bureau: tl.credit_bureau as CreditBureau || 'equifax',
+                    user_id: user?.id || '',
+                    id: '', // Will be set when saved to database
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }));
+                  
+                  // Add AI-extracted tradelines to the state
+                  setTradelines(prev => [...prev, ...convertedTradelines]);
+                  console.log(`Successfully extracted ${convertedTradelines.length} tradelines via AI`);
+                }
+              } catch (jsonError) {
+                console.error('Failed to parse AI response as JSON:', jsonError);
+                console.log('AI Response that failed to parse:', sanitizedResponse);
+                
+                // If JSON parsing fails, treat as plain text insights
+                setAiInsights(aiResponse || 'AI analysis completed but response format was invalid.');
+                
+                // Extract keywords using a simple approach from the original text
+                const keywords = extractedText
+                  .toLowerCase()
+                  .match(/\b(credit|debt|payment|balance|collection|charge.?off|bankruptcy|foreclosure|late|delinquent|dispute|inquiry)\b/g) || [];
+                setExtractedKeywords([...new Set(keywords)]);
+                
+                // Also try to parse tradelines using the traditional parser as fallback
+                try {
+                  const fallbackTradelines = await parseTradelinesFromText(extractedText, user?.id || "");
+                  if (fallbackTradelines.length > 0) {
+                    setTradelines(prev => [...prev, ...fallbackTradelines]);
+                    console.log(`Fallback: extracted ${fallbackTradelines.length} tradelines via traditional parser`);
+                  }
+                } catch (parseError) {
+                  console.error('Traditional parser also failed:', parseError);
+                }
+              }
+
               const parsedAI: AIAnalysisResponse = JSON.parse(sanitizedResponse);
               
               setExtractedKeywords(parsedAI.keywords || []);

@@ -45,7 +45,6 @@ const msg1Text1 = {text: `Extract the following fields from this credit report t
         - account_type: string (must match one of: "credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection")
         - account_status: string (must match one of: "open", "closed", "in_collection", "charged_off", "disputed")
         - credit_bureau: string (must match one of: "equifax", "transunion", "experian")
-        - raw_text: string (the full input text)
         Here is the tradeline text:
         \\\`\\\`\\\`
         ${text}

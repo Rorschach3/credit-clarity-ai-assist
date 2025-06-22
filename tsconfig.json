@@ -1,11 +1,12 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
   "compilerOptions": {
-    "types": ["node", "jest"],
+    "target": "es2020",
+    "lib": ["es2020", "dom", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "types": ["vite/client", "node","jest", "@testing-library/jest-dom"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
@@ -13,10 +14,31 @@
     "jsx": "react-jsx",
     "noImplicitAny": false,
     "noUnusedParameters": false,
+    "composite": true,
+    "declaration": true,
     "skipLibCheck": true,
     "allowJs": true,
     "noUnusedLocals": false,
     "strictNullChecks": false,
-    "esModuleInterop": true,
-  }
+    "outDir": "./dist/app"
+  },
+    "include": [
+    "src/**/*",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "scripts",
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.stories.tsx",
+    "src/**/*.stories.ts"
+  ]
 }
