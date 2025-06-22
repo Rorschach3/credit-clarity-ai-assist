@@ -56,12 +56,14 @@ const DisputeLetterPage = () => {
   }, [user, navigate]);
 
   const handleProceed = () => {
+    console.log("Proceed to Step 3 button clicked.");
+    console.log("Selected Tradelines length:", selectedTradelines.length);
     // Navigate to dispute packet page
     navigate("/dispute-packet");
   };
 
   // Only allow selection of negative tradelines
-  const negativeTradelines = tradelines.filter((t) => t.isNegative);
+  const negativeTradelines = tradelines.filter((t) => t.is_negative);
 
   return (
    <MainLayout>
@@ -94,7 +96,7 @@ const DisputeLetterPage = () => {
 
               <div className="flex justify-end space-x-4">
                 <Button onClick={handleProceed} disabled={selectedTradelines.length === 0}>
-                  Proceed to Step 3
+                  Proceed to Step 3 ({selectedTradelines.length})
                 </Button>
               </div>
             </>

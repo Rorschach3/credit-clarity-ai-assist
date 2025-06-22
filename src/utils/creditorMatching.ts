@@ -7,7 +7,7 @@ import { knownCreditors } from './knownCreditors';
  * @returns Standardized creditor name
  */
 export function standardizeCreditorName(extractedName: string): string {
-  if (!extractedName || extractedName === "Unknown") {
+  if (!extractedName || extractedName === null) {
     return extractedName;
   }
   

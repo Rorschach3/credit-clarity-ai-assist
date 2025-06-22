@@ -34,6 +34,7 @@ export function groupTradelinesByAccount(
     if (t.credit_bureau === "equifax") group.equifax = t;
     if (t.credit_bureau === "transunion") group.transunion = t;
     if (t.credit_bureau === "experian") group.experian = t;
+    if (t.credit_bureau === null) group[" "] = t;
   });
 
   return Array.from(map.values());

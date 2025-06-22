@@ -52,13 +52,13 @@ interface AIAnalysisResponse {
   tradelines?: Array<{
     creditor_name: string;
     account_number: string;
-    balance: number;
+    balance: string;
     status: string;
     account_type: string;
-    credit_limit?: number;
+    credit_limit?: string;
     date_opened?: string;
-    monthly_payment?: number;
-    credit_bureau?: string;
+    monthly_payment?: string;
+    credit_bureau?: CreditBureau;
   }>;
   keywords?: string[];
   insights?: string;
@@ -73,7 +73,7 @@ type ProcessingMethod = 'ocr' | 'ai';
 
 type AccountStatus = "open" | "closed" | "in_collection" | "charged_off" | "disputed";
 type AccountType = "credit_card" | "loan" | "mortgage" | "auto_loan" | "student_loan" | "collection";
-type CreditBureau = "equifax" | "transunion" | "experian";
+type CreditBureau = "equifax" | "transunion" | "experian" | null;
 
 function safeValue<T extends string | number | null | undefined>(v: T): string {
   if (typeof v === "number") return String(v);
@@ -273,13 +273,13 @@ const CreditReportUploadPage = () => {
                   const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
                     creditor_name: tl.creditor_name || '',
                     account_number: tl.account_number || '',
-                    account_balance: String(tl.balance || ''),
+                    account_balance: String(tl.balance || '$0'),
                     account_status: tl.status as AccountStatus || 'open',
                     account_type: tl.account_type as AccountType || 'credit_card',
-                    credit_limit: String(tl.credit_limit || ''),
-                    date_opened: tl.date_opened || '',
-                    monthly_payment: String(tl.monthly_payment || ''),
-                    credit_bureau: tl.credit_bureau as CreditBureau || 'equifax',
+                    credit_limit: String(tl.credit_limit || '$0'),
+                    date_opened: tl.date_opened || 'xxxx/xx/xx',
+                    monthly_payment: String(tl.monthly_payment || '$0'),
+                    credit_bureau: tl.credit_bureau as CreditBureau || '',
                     user_id: user?.id || '',
                     id: '', // Will be set when saved to database
                     created_at: new Date().toISOString(),
@@ -331,7 +331,7 @@ const CreditReportUploadPage = () => {
                   credit_limit: String(tl.credit_limit || ''),
                   date_opened: tl.date_opened || '',
                   monthly_payment: String(tl.monthly_payment || ''),
-                  credit_bureau: tl.credit_bureau as CreditBureau || 'equifax',
+                  credit_bureau: tl.credit_bureau as CreditBureau || '',
                   user_id: user?.id || '',
                   id: '', // Will be set when saved to database
                   created_at: new Date().toISOString(),

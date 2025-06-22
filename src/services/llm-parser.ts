@@ -19,7 +19,7 @@ interface TradelineData {
   creditor_name: string;
   account_number: string;
   account_balance: string;
-  created_at: string;
+  created_at: Date;
   credit_limit: string;
   monthly_payment: string;
   date_opened: string;
@@ -36,15 +36,15 @@ function validateJsonStructure(jsonStr: string): TradelineData {
     const requiredFields = {
       creditor_name: '',
       account_number: '',
-      account_balance: '',
+      account_balance: '$0',
       created_at: new Date().toISOString(),
-      credit_limit: '',
-      monthly_payment: '',
-      date_opened: '',
+      credit_limit: '$0',
+      monthly_payment: '$0',
+      date_opened: 'xxxx/xx/xx',
       is_negative: false,
       account_type: 'credit_card',
       account_status: 'open',
-      credit_bureau: 'equifax',
+      credit_bureau: '',
     };
 
     for (const [field, defaultValue] of Object.entries(requiredFields)) {
@@ -58,7 +58,7 @@ function validateJsonStructure(jsonStr: string): TradelineData {
     const validCreditBureaus = ['equifax', 'transunion', 'experian'];
 
     if (!validAccountTypes.includes(data.account_type)) {
-      data.account_type = 'credit_card';
+      data.account_type = '';
     }
 
     if (!validAccountStatuses.includes(data.account_status)) {
@@ -66,7 +66,7 @@ function validateJsonStructure(jsonStr: string): TradelineData {
     }
 
     if (!validCreditBureaus.includes(data.credit_bureau)) {
-      data.credit_bureau = 'equifax';
+      data.credit_bureau = '';
     }
 
     return data;
@@ -108,17 +108,17 @@ export async function parseDocumentViaProxy(base64: string): Promise<object> {
       console.error(`Raw response: ${responseText.substring(0, 500)}...`);
 
       return {
-        creditor_name: 'null',
-        account_number: 'null',
-        account_balance: '0',
+        creditor_name: '',
+        account_number: '',
+        account_balance: '$0',
         created_at: new Date().toISOString(),
-        credit_limit: '0',
-        monthly_payment: '0',
-        date_opened: 'null',
+        credit_limit: '$0',
+        monthly_payment: '$0',
+        date_opened: 'xxxx/xx/xx',
         is_negative: false,
         account_type: 'credit_card',
         account_status: 'open',
-        credit_bureau: 'null',
+        credit_bureau: '',
         parse_error: errorMessage
       };
     }
@@ -243,24 +243,26 @@ Required JSON format:
 {
   "creditor_name": "string",
   "account_number": "string", 
-  "account_balance": "string (no currency symbols)",
+  "account_balance": "string",
   "created_at": "string (yyyy-MM-dd format)",
-  "credit_limit": "string (no currency symbols)",
-  "monthly_payment": "string (no currency symbols)",
+  "credit_limit": "string",
+  "monthly_payment": "string",
   "date_opened": "string",
-  "is_negative": boolean,
+  "is_negative": "boolean",
   "account_type": "string",
   "account_status": "string",
-  "credit_bureau": "string",
+  "credit_bureau": "string (default to '')",
 }
 
 Field constraints:
+- created_at should be today's date in ISO format if not found in text
 - account_type must be one of: "credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"
 - account_status must be one of: "open", "closed", "in_collection", "charged_off", "disputed"  
-- credit_bureau must be one of: "equifax", "transunion", "experian"
+- credit_bureau must be one of: "equifax", "transunion", "experian", " ",
 - is_negative should be true for negative accounts, false otherwise
-- created_at should be today's date in ISO format if not found in text
 - remove the "\`\`\`json" and "\`\`\`" markdown code blocks if present
+- credit_limit, account_balance, and monthly_payment default to "$0" if not found
+- date_opened defaults to "xxxx/xx/xx" if not found
 
 Tradeline text to parse:
 \`\`\`
@@ -280,17 +282,17 @@ Return only the JSON object, no other text:`;
     console.error(`Tradeline extraction failed: ${errorMessage}`);
 
     const fallbackData = {
-      creditor_name: 'Unknown',
-      account_number: 'Unknown',
-      account_balance: '0',
+      creditor_name: '',
+      account_number: '',
+      account_balance: '$0',
       created_at: new Date().toISOString(),
-      credit_limit: '0',
-      monthly_payment: '0',
-      date_opened: 'Unknown',
+      credit_limit: '$0',
+      monthly_payment: '$0',
+      date_opened: 'xxxx/xx/xx',
       is_negative: false,
       account_type: 'credit_card',
       account_status: 'open',
-      credit_bureau: 'equifax',
+      credit_bureau: '',
       parse_error: errorMessage
     };
 

@@ -123,7 +123,7 @@ export function FileUploader() {
                       console.log(`Starting upload for file: ${file.name} at path: ${filePath}`);
                       toast.info(`Uploading ${file.name}...`, { duration: TOAST_DURATION });
                       const { error: uploadError } = await supabase.storage
-                        .from("credit-reports")
+                        .from("tradelines")
                         .upload(filePath, file, {
                           cacheControl: "3600",
                           upsert: false,
@@ -136,7 +136,7 @@ export function FileUploader() {
                       toast.success(`Upload successful for file: ${file.name}`);
 
                       const { error: insertError } = await supabase
-                        .from("credit_reports")
+                        .from("tradelines")
                         .insert([
                           {
                             file_name: file.name,
