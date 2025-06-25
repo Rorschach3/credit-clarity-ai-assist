@@ -1,97 +1,96 @@
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-} from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider"
-import { useAuth, AuthProvider } from "@/hooks/use-auth";
-import MainLayout from "@/components/layout/MainLayout";
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import { useTheme } from './hooks/use-theme';
+import { Navbar } from './components/layout/Navbar';
 import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/DashboardPage";
+import AboutPage from "@/pages/AboutPage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/ContactPage";
-import FaqPage from "@/pages/FaqPage";
-import PricingPage from "@/pages/PricingPage";
-import NotFoundPage from "@/pages/NotFoundPage";
-import AdminRoute from "@/components/auth/AdminRoute";
-import AdminPage from "@/pages/AdminPage";
-import FeaturesPage from "@/pages/FeaturesPage";
-import TestimonialsPage from "@/pages/TestimonialsPage";
+import ResetPasswordPage from '@/pages/ResetPasswordPage'; 
+import Hero from './components/Hero/Hero';
+import { AuthProvider, useAuth } from './hooks/use-auth';
 import TradelinesPage from "@/pages/TradelinesPage";
-import ProfilePage from "@/pages/ProfilePage";
-import { Toaster } from "@/components/ui/toaster";
-import BlogPage from "@/pages/BlogPage";
-import BlogPost from "@/components/BlogPost";
-import CreditReportUploadPage from "@/pages/CreditReportUploadPage";
-import DisputeLetterPage from "@/pages/DisputeLetterPage";
-import DisputePacketPage from "@/pages/DisputePacketPage";
-
-import DisputeWizardPage from "@/pages/DisputeWizardPage";
+import ServicesGrid from './components/Services/ServicesGrid';
+import ProcessTimeline from './components/Process/ProcessTimeline';
+import CreditReportUploadPage from './pages/CreditReportUploadPage';
+import DisputeWizardPage from './pages/DisputeWizardPage';
+import DisputeLetterPage from './pages/DisputeLetterPage';
+import ContactForm from './components/Contact/ContactForm';
+import Footer from './components/Footer/Footer';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
-  const theme = "system";
-
   return (
     <AuthProvider>
-      <InnerApp theme={theme} />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }
 
-function InnerApp({ theme }: { theme: string }) {
+function AppContent() {
+  const { theme } = useTheme();
   const { isLoading } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+  }, [theme]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme={theme}
-      disableTransitionOnChange
-    >
-      <Router>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/faq" element={<FaqPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/testimonials" element={<TestimonialsPage />} />
-          <Route path="/credit-report-upload" element={<CreditReportUploadPage />} />
-          <Route path="/dispute-letter" element={<DisputeLetterPage />} />
-          <Route path="/dispute-packet" element={<DisputePacketPage />} />
-          <Route path="/tradelines" element={<MainLayout><TradelinesPage /></MainLayout>} />
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
-            }
-          />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="*" element={<NotFoundPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:id" element={<BlogPost />} />
-          <Route path="/dispute-wizard" element={<DisputeWizardPage />} />
-        </Routes>
-        </Router>
-        <Toaster />
-      </ThemeProvider>
-    );
-  }
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <Navbar />
+      <main>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={
+              <>
+                <Hero />
+                <ServicesGrid />
+                <ProcessTimeline />                 
+                <ContactForm />
+              </>
+            } />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/credit-report-upload" element={<CreditReportUploadPage />} />
+            <Route path="/dispute-letter" element={<DisputeLetterPage />} />
+            <Route path="/dispute-wizard" element={<DisputeWizardPage />} />
+            <Route path="/tradelines" element={
+              <MainLayout>
+                <TradelinesPage />
+              </MainLayout>
+            } />
+            {/* Commented out routes for future implementation
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/faq" element={<FaqPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            */}
+          </Routes>
+        </AnimatePresence>
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 export default App;

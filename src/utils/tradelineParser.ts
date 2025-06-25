@@ -6,36 +6,34 @@ import type { Database } from "@/integrations/supabase/types";
 import { extractTradelineData } from "@/services/llm-parser";
 
 // Type definitions for enum values
-export type AccountType = "credit_card" | "loan" | "mortgage" | "auto_loan" | "student_loan" | "collection";
-export type AccountStatus = "open" | "closed" | "in_collection" | "charged_off" | "disputed";
-export type CreditBureau = "equifax" | "transunion" | "experian";
+export type AccountType = "credit_card" | "loan" | "mortgage" | "auto_loan" | "student_loan" | "collection" | "";
+export type AccountStatus = "open" | "closed" | "in_collection" | "charged_off" | "disputed" | "";
+export type CreditBureau = "equifax" | "transunion" | "experian"; // Re-added CreditBureau type
 
 // Enhanced Zod schema with better validation and error handling
 export const ParsedTradelineSchema = z.object({
   id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
-  creditor_name: z.string().min(1).default("Unknown Creditor"),
-  account_number: z.string().min(1).default("Unknown Account"),
+  creditor_name: z.string().min(1).default(""),
+  account_number: z.string().min(1).default(""),
   account_balance: z.string().default("$0"),
   created_at: z.string().datetime().default(() => new Date().toISOString()),
   credit_limit: z.string().default("$0"),
   monthly_payment: z.string().default("$0"),
-  date_opened: z.string().default("Unknown"),
+  date_opened: z.string().default(""),
   is_negative: z.boolean().default(false),
-  account_type: z.enum(["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"]).default("credit_card"),
-  account_status: z.enum(["open", "closed", "in_collection", "charged_off", "disputed"]).default("open"),
-  credit_bureau: z.enum(["equifax", "transunion", "experian"]).default("equifax"),
+  account_type: z.enum(["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection", ""]).default("credit_card"),
+  account_status: z.enum(["open", "closed", "in_collection", "charged_off", "disputed", ""]).default("open"),
+  credit_bureau: z.enum(["equifax", "transunion", "experian"]).default("equifax"), // Re-added credit_bureau to schema
   dispute_count: z.number().int().min(0).default(0),
-  parse_warnings: z.array(z.string()).default([]), // Added parse_warnings field
-  confidence_score: z.number().min(0).max(1).default(0.5), // Added confidence tracking
 });
 
 export type ParsedTradeline = z.infer<typeof ParsedTradelineSchema>;
 
 // Enhanced parsing with better error handling and retry logic
 export async function parseTradelinesFromText(
-  text: string, 
-  userId: string,
+  text: string,
+  userId: string, // Ensure userId is always provided and valid
   options: {
     maxRetries?: number;
     timeoutMs?: number;
@@ -171,21 +169,19 @@ function sanitizeTradelineData(parsed: unknown, userId: string, originalText?: s
   };
 
   return {
-    creditor_name: String(safeExtract('creditor_name', "Unknown Creditor")),
-    account_number: String(safeExtract('account_number', "Unknown Account")),
+    creditor_name: String(safeExtract('creditor_name', " ")),
+    account_number: String(safeExtract('account_number', " ")),
     account_balance: String(safeExtract('account_balance', "$0")),
     created_at: new Date().toISOString(),
     credit_limit: String(safeExtract('credit_limit', "$0")),
     monthly_payment: String(safeExtract('monthly_payment', "$0")),
-    date_opened: String(safeExtract('date_opened', "Unknown")),
+    date_opened: String(safeExtract('date_opened', " ")),
     is_negative: Boolean(safeExtract('is_negative', false)),
     account_type: validateAccountType(parsedObj.account_type) || "credit_card",
     account_status: validateAccountStatus(parsedObj.account_status) || "open",
-    credit_bureau: validateCreditBureau(parsedObj.credit_bureau) || "equifax",
+    credit_bureau: validateCreditBureau(parsedObj.credit_bureau) || "equifax", // Re-added credit_bureau
     user_id: userId,
     dispute_count: Number(safeExtract('dispute_count', 0)) || 0,
-    parse_warnings: warnings,
-    confidence_score: Math.max(0, Math.min(1, confidenceScore)),
   };
 }
 
@@ -202,11 +198,9 @@ function createFallbackData(userId: string, warnings: string[]): Partial<ParsedT
     is_negative: false,
     account_type: "credit_card" as AccountType,
     account_status: "open" as AccountStatus,
-    credit_bureau: "equifax" as CreditBureau,
+    credit_bureau: "equifax" as CreditBureau, // Re-added credit_bureau
     user_id: userId,
     dispute_count: 0,
-    parse_warnings: warnings,
-    confidence_score: 0.1,
   };
 }
 
@@ -233,11 +227,9 @@ function createFallbackTradeline(userId: string, warnings: string[] = [], origin
     is_negative: false,
     account_type: "credit_card" as AccountType,
     account_status: "open" as AccountStatus,
-    credit_bureau: "equifax" as CreditBureau,
+    credit_bureau: "equifax" as CreditBureau, // Re-added credit_bureau
     user_id: userId,
     dispute_count: 0,
-    parse_warnings: [...warnings, "Created as fallback due to parsing failure"],
-    confidence_score: 0.1,
   });
 }
 
@@ -246,111 +238,69 @@ type TradelineInsert = Database["public"]["Tables"]["tradelines"]["Insert"];
 type TradelineRow = Database["public"]["Tables"]["tradelines"]["Row"];
 
 // Enhanced database save with better error handling
-export async function saveTradelinesToDatabase(
-  tradelines: ParsedTradeline[],
-  userId: string
-): Promise<{ success: number; failed: number; errors: string[] }> {
-  if (!tradelines.length) {
-    return { success: 0, failed: 0, errors: [] };
-  }
-
-  const errors: string[] = [];
-  let successCount = 0;
-  let failedCount = 0;
-
-  // Process in batches to avoid overwhelming the database
-  const batchSize = 10;
-  for (let i = 0; i < tradelines.length; i += batchSize) {
-    const batch = tradelines.slice(i, i + batchSize);
-    
-    try {
-      const rows: TradelineInsert[] = batch.map((tradeline) => ({
-        user_id: tradeline.user_id || userId,
-        creditor_name: tradeline.creditor_name,
-        account_number: tradeline.account_number,
-        account_balance: String(tradeline.account_balance),
-        credit_limit: String(tradeline.credit_limit),
-        date_opened: tradeline.date_opened,
-        is_negative: tradeline.is_negative,
-        account_type: tradeline.account_type,
-        account_status: tradeline.account_status,
-        credit_bureau: tradeline.credit_bureau,
-        monthly_payment: tradeline.monthly_payment,
-        // Note: parse_warnings and confidence_score might need to be added to your DB schema
-      }));
-
-      const { error } = await supabase.from("tradelines").upsert(rows);
-
-      if (error) {
-        errors.push(`Batch ${Math.floor(i/batchSize) + 1}: ${error.message}`);
-        failedCount += batch.length;
-      } else {
-        successCount += batch.length;
-      }
-    } catch (batchError) {
-      const errorMessage = batchError instanceof Error ? batchError.message : String(batchError);
-      errors.push(`Batch ${Math.floor(i/batchSize) + 1}: ${errorMessage}`);
-      failedCount += batch.length;
-    }
-  }
-
-  if (errors.length > 0) {
-    console.error("❌ Database save errors:", errors);
-  }
-
-  return { success: successCount, failed: failedCount, errors };
-}
-
-// Enhanced fetch with better error handling
-export async function fetchUserTradelines(userId: string): Promise<ParsedTradeline[]> {
+export const saveTradelinesToDatabase = async (tradelines: ParsedTradeline[], userId: string) => {
   try {
-    const { data, error } = await supabase
-      .from("tradelines")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-      
-    if (error) throw error;
-    if (!data) return [];
+    console.log("Saving tradelines via Edge Function:", { count: tradelines.length, userId });
 
-    return data.map((row: TradelineRow): ParsedTradeline => {
-      return ParsedTradelineSchema.parse({
-        id: row.id,
-        user_id: row.user_id,
-        creditor_name: row.creditor_name || "Unknown Creditor",
-        account_number: row.account_number || "Unknown Account",
-        account_status: validateAccountStatus(row.account_status) || "open",
-        account_type: validateAccountType(row.account_type) || "credit_card",
-        account_balance: row.account_balance || "$0",
-        credit_limit: row.credit_limit || "$0",
-        date_opened: row.date_opened || "Unknown",
-        is_negative: Boolean(row.is_negative),
-        created_at: row.created_at,
-        credit_bureau: validateCreditBureau(row.credit_bureau) || "equifax",
-        monthly_payment: row.monthly_payment || "$0",
-        dispute_count: Number(row.dispute_count || 0),
-        parse_warnings: [], // Default empty array since not stored in DB yet
-        confidence_score: 0.8, // Default confidence for existing records
-      });
+    const response = await fetch('https://gywohmbqohytziwsjrps.supabase.co/functions/v1/add-tradeline', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // Accessing client-side env var via Vite
+      },
+      body: JSON.stringify({ tradelines: tradelines.map(tl => ({ ...tl, user_id: userId })) }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Edge Function error:", errorData);
+      throw new Error(`Failed to save tradelines via Edge Function: ${errorData.message || response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("Save successful via Edge Function:", result);
+    return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("❌ Error fetching tradelines:", error);
-    throw new Error(`Failed to fetch tradelines: ${errorMessage}`);
+    console.error("Error in saveTradelinesToDatabase (Edge Function call):", error);
+    throw error;
   }
-}
+};
+
+// Add logging to your fetch function
+export const fetchUserTradelines = async (user_id: string): Promise<ParsedTradeline[]> => {
+  try {
+    console.log("Fetching tradelines for user:", user_id);
+    
+    const { data, error } = await supabase
+      .from('tradelines')
+      .select('*')
+      .eq('user_id', user_id);
+
+    if (error) {
+      console.error("Database fetch error:", error);
+      throw error;
+    }
+    
+    console.log("Fetch successful:", { count: data?.length || 0, data });
+    // Validate and transform fetched data to ParsedTradeline schema
+    return data ? data.map(item => ParsedTradelineSchema.parse(item)) : [];
+  } catch (error) {
+    console.error("Error in fetchUserTradelines:", error);
+    throw error;
+  }
+};
 
 // Enhanced validation functions with better type safety
 function validateAccountType(type: unknown): AccountType | undefined {
   if (!type || typeof type !== 'string') return undefined;
-  const validTypes: AccountType[] = ["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"];
+  const validTypes: AccountType[] = ["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection", ""];
   const normalizedType = type.toLowerCase().replace(/[_\s]/g, '_') as AccountType;
   return validTypes.includes(normalizedType) ? normalizedType : undefined;
 }
 
 function validateAccountStatus(status: unknown): AccountStatus | undefined {
   if (!status || typeof status !== 'string') return undefined;
-  const validStatuses: AccountStatus[] = ["open", "closed", "in_collection", "charged_off", "disputed"];
+  const validStatuses: AccountStatus[] = ["open", "closed", "in_collection", "charged_off", "disputed", ""];
   const normalizedStatus = status.toLowerCase().replace(/\s/g, '_') as AccountStatus;
   return validStatuses.includes(normalizedStatus) ? normalizedStatus : undefined;
 }

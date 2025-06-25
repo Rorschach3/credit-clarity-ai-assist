@@ -70,6 +70,7 @@ class ParsedTradeline:
     account_type: str = AccountType.CREDIT_CARD.value
     account_status: str = AccountStatus.OPEN.value
     credit_bureau: str = CreditBureau.NULL.value
+    user_id: str = "" # Added user_id with a blank default
     
     # def __post_init__(self):
     #     if self.parse_warnings is None:
@@ -165,6 +166,7 @@ REQUIRED OUTPUT FORMAT (JSON only, no markdown, no explanations):
     "account_type": "string (must be one of: {', '.join(account_types)})",
     "account_status": "string (must be one of: {', '.join(account_statuses)})",
     "credit_bureau": "string (must be one of: {', '.join(credit_bureaus)})",
+    "user_id": "string (leave blank, will be filled by client)",
 }}
 
 EXTRACTION RULES:

@@ -1,4 +1,5 @@
 import { HarmCategory, HarmBlockThreshold, GoogleGenerativeAI } from "@google/generative-ai";
+import { ParsedTradeline } from "@/utils/tradelineParser";
 
 // Helper function to clean and validate JSON responses
 function cleanJsonResponse(responseText: string): string {
@@ -6,70 +7,63 @@ function cleanJsonResponse(responseText: string): string {
     throw new Error('Empty response from LLM');
   }
 
-  const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return jsonMatch[0].trim();
+  // Remove markdown code blocks
+  let cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+  
+  // Remove any text before the first { or [
+  const jsonStart = Math.max(cleaned.indexOf('{'), cleaned.indexOf('['));
+  if (jsonStart > 0) {
+    cleaned = cleaned.substring(jsonStart);
+  }
+  
+  // Remove any text after the last } or ]
+  const jsonEndBrace = cleaned.lastIndexOf('}');
+  const jsonEndBracket = cleaned.lastIndexOf(']');
+  const jsonEnd = Math.max(jsonEndBrace, jsonEndBracket);
+  
+  if (jsonEnd > 0 && jsonEnd < cleaned.length - 1) {
+    cleaned = cleaned.substring(0, jsonEnd + 1);
   }
 
-  return cleaned.trim();
+  return cleaned;
 }
 
-interface TradelineData {
-  creditor_name: string;
-  account_number: string;
-  account_balance: string;
-  created_at: Date;
-  credit_limit: string;
-  monthly_payment: string;
-  date_opened: string;
-  is_negative: boolean;
-  account_type: string;
-  account_status: string;
-  credit_bureau: string;
-}
+// Use ParsedTradeline from tradelineParser for consistency
+type TradelineData = ParsedTradeline;
 
 function validateJsonStructure(jsonStr: string): TradelineData {
   try {
     const data = JSON.parse(jsonStr);
 
-    const requiredFields = {
-      creditor_name: '',
-      account_number: '',
-      account_balance: '$0',
+    // Define default values for fields that might be missing or null
+    const defaults: Partial<ParsedTradeline> = {
+      creditor_name: "",
+      account_number: "",
+      account_balance: "$0",
       created_at: new Date().toISOString(),
-      credit_limit: '$0',
-      monthly_payment: '$0',
-      date_opened: 'xxxx/xx/xx',
+      credit_limit: "$0",
+      monthly_payment: "$0",
+      date_opened: "",
       is_negative: false,
-      account_type: 'credit_card',
-      account_status: 'open',
-      credit_bureau: '',
+      account_type: "credit_card",
+      account_status: "open",
     };
 
-    for (const [field, defaultValue] of Object.entries(requiredFields)) {
-      if (!(field in data)) {
-        data[field] = defaultValue;
-      }
-    }
+    // Apply defaults and ensure correct types
+    const validatedData: ParsedTradeline = {
+      creditor_name: data.creditor_name || defaults.creditor_name!,
+      account_number: data.account_number || defaults.account_number!,
+      account_balance: data.account_balance || defaults.account_balance!,
+      credit_limit: data.credit_limit || defaults.credit_limit!,
+      monthly_payment: data.monthly_payment || defaults.monthly_payment!,
+      date_opened: data.date_opened || defaults.date_opened!,
+      is_negative: typeof data.is_negative === 'boolean' ? data.is_negative : defaults.is_negative!,
+      account_type: (data.account_type && ["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection", ""].includes(data.account_type)) ? data.account_type : defaults.account_type!,
+      account_status: (data.account_status && ["open", "closed", "in_collection", "charged_off", "disputed", ""].includes(data.account_status)) ? data.account_status : defaults.account_status!,
+      dispute_count: typeof data.dispute_count === 'number' ? data.dispute_count : 0,
+    };
 
-    const validAccountTypes = ['credit_card', 'loan', 'mortgage', 'auto_loan', 'student_loan', 'collection'];
-    const validAccountStatuses = ['open', 'closed', 'in_collection', 'charged_off', 'disputed'];
-    const validCreditBureaus = ['equifax', 'transunion', 'experian'];
-
-    if (!validAccountTypes.includes(data.account_type)) {
-      data.account_type = '';
-    }
-
-    if (!validAccountStatuses.includes(data.account_status)) {
-      data.account_status = 'open';
-    }
-
-    if (!validCreditBureaus.includes(data.credit_bureau)) {
-      data.credit_bureau = '';
-    }
-
-    return data;
+    return validatedData;
   } catch (err: unknown) {
     throw new Error(`Invalid JSON format: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
@@ -81,7 +75,7 @@ export async function parseDocumentViaProxy(base64: string): Promise<object> {
   try {
     const res = await fetch('http://localhost:8000/parse-tradeline', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'apikey': process.env.SUPABASE_API_KEY, 'x-supabase-auth': process.env.SUPABASE_AUTH_TOKEN },
       body: JSON.stringify({ text: base64 }),
     });
 
@@ -107,20 +101,21 @@ export async function parseDocumentViaProxy(base64: string): Promise<object> {
       console.error(`JSON parsing error: ${errorMessage}`);
       console.error(`Raw response: ${responseText.substring(0, 500)}...`);
 
-      return {
-        creditor_name: '',
-        account_number: '',
-        account_balance: '$0',
+      // Return a fallback object that conforms to ParsedTradeline structure
+      const fallback: ParsedTradeline = {
+        creditor_name: "",
+        account_number: "",
+        account_balance: "$0",
         created_at: new Date().toISOString(),
-        credit_limit: '$0',
-        monthly_payment: '$0',
-        date_opened: 'xxxx/xx/xx',
+        credit_limit: "$0",
+        monthly_payment: "$0",
+        date_opened: "",
         is_negative: false,
-        account_type: 'credit_card',
-        account_status: 'open',
-        credit_bureau: '',
-        parse_error: errorMessage
+        account_type: "credit_card",
+        account_status: "open",
+        dispute_count: 0,
       };
+      return fallback;
     }
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -229,76 +224,79 @@ export async function sendChatMessage(
   throw lastError || new Error('Max chat retries exceeded');
 }
 
+// FIXED: Return the parsed object instead of JSON string
 export async function extractTradelineData(
   text: string,
   onChunk?: (chunk: GenerationChunk) => void
-): Promise<string> {
+): Promise<ParsedTradeline> {
   if (!text || !text.trim()) {
     throw new Error('Input text is empty');
   }
 
   const prompt = `You are a financial document parser. Extract the following fields from this credit report tradeline section and return ONLY a valid JSON object with no additional text, markdown, or explanations.
-
-Required JSON format:
-{
-  "creditor_name": "string",
-  "account_number": "string", 
-  "account_balance": "string",
-  "created_at": "string (yyyy-MM-dd format)",
-  "credit_limit": "string",
-  "monthly_payment": "string",
-  "date_opened": "string",
-  "is_negative": "boolean",
-  "account_type": "string",
-  "account_status": "string",
-  "credit_bureau": "string (default to '')",
-}
-
-Field constraints:
-- created_at should be today's date in ISO format if not found in text
-- account_type must be one of: "credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"
-- account_status must be one of: "open", "closed", "in_collection", "charged_off", "disputed"  
-- credit_bureau must be one of: "equifax", "transunion", "experian", " ",
-- is_negative should be true for negative accounts, false otherwise
-- remove the "\`\`\`json" and "\`\`\`" markdown code blocks if present
-- credit_limit, account_balance, and monthly_payment default to "$0" if not found
-- date_opened defaults to "xxxx/xx/xx" if not found
-
-Tradeline text to parse:
-\`\`\`
-${text}
-\`\`\`
-
-Return only the JSON object, no other text:`;
-
-  try {
-    const result = await sendChatMessage(prompt, onChunk);
-    const cleanedJson = cleanJsonResponse(result);
-    const validatedData = validateJsonStructure(cleanedJson);
-    // REMOVED: validatedData.raw_text = text; - This was causing the 500 error
-    return JSON.stringify(validatedData, null, 2);
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`Tradeline extraction failed: ${errorMessage}`);
-
-    const fallbackData = {
-      creditor_name: '',
-      account_number: '',
-      account_balance: '$0',
-      created_at: new Date().toISOString(),
-      credit_limit: '$0',
-      monthly_payment: '$0',
-      date_opened: 'xxxx/xx/xx',
-      is_negative: false,
-      account_type: 'credit_card',
-      account_status: 'open',
-      credit_bureau: '',
-      parse_error: errorMessage
-    };
-
-    return JSON.stringify(fallbackData, null, 2);
-  }
-}
+ 
+ Required JSON format:
+ {
+   "creditor_name": "string",
+   "account_number": "string",
+   "account_balance": "string",
+   "created_at": "string (ISO format)",
+   "credit_limit": "string",
+   "monthly_payment": "string",
+   "date_opened": "string",
+   "is_negative": boolean,
+   "account_type": "credit_card|loan|mortgage|auto_loan|student_loan|collection",
+   "account_status": "open|closed|in_collection|charged_off|disputed",
+   "dispute_count": number
+ }
+ 
+ Field constraints:
+ - created_at should be today's date in ISO format if not found in text
+ - account_type must be one of: "credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection"
+ - account_status must be one of: "open", "closed", "in_collection", "charged_off", "disputed"
+ - is_negative should be true for negative accounts, false otherwise
+ - Remove any markdown code blocks from your response
+ - credit_limit, account_balance, and monthly_payment default to "$0" if not found
+ - date_opened defaults to "Unknown" if not found
+ - dispute_count should be a number, default to 0
+ 
+ Tradeline text to parse:
+ \`\`\`
+ ${text}
+ \`\`\`
+ 
+ Return only the JSON object, no other text:`;
+ 
+   try {
+     const result = await sendChatMessage(prompt, onChunk);
+     console.log('Raw LLM response:', result);
+     
+     const cleanedJson = cleanJsonResponse(result);
+     console.log('Cleaned JSON:', cleanedJson);
+     
+     const validatedData = validateJsonStructure(cleanedJson);
+     return validatedData; // Return the object, not JSON string
+   } catch (err: unknown) {
+     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+     console.error(`Tradeline extraction failed: ${errorMessage}`);
+ 
+     const fallbackData: ParsedTradeline = {
+       creditor_name: "",
+       account_number: "",
+       account_balance: "$0",
+       created_at: new Date().toISOString(),
+       credit_limit: "$0",
+       monthly_payment: "$0",
+       date_opened: "",
+       is_negative: false,
+       account_type: "credit_card",
+       account_status: "open",
+       dispute_count: 0,
+     };
+ 
+     return fallbackData; // Return the object, not JSON string
+   }
+ }
 
 export class GoogleGeminiParser {
   constructor(private apiKey = import.meta.env.VITE_GEMINI_API_KEY) {

@@ -16,95 +16,18 @@ import { useAuth } from "@/hooks/use-auth";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   saveTradelinesToDatabase,
-  parseTradelinesFromText,
-  ParsedTradeline,
+  parseTradelinesFromText
 } from "@/utils/tradelineParser";
 import { ManualTradelineModal } from "@/components/disputes/ManualTradelineModal";
+import { Checkbox } from "@/components/ui/checkbox";
 import { parseDocumentViaProxy, generateContent } from "@/services/llm-parser";
-
-// Type definitions
-interface DocumentAIResponse {
-  document?: {
-    text?: string;
-    entities?: Array<{
-      mentionText: string;
-      type: string;
-      confidence: number;
-    }>;
-    pages?: Array<{
-      pageNumber: number;
-      dimension: {
-        width: number;
-        height: number;
-      };
-    }>;
-  };
-  error?: {
-    code: number;
-    message: string;
-    details?: Array<{
-      [key: string]: unknown;
-    }>;
-  };
-}
-
-interface AIAnalysisResponse {
-  tradelines?: Array<{
-    creditor_name: string;
-    account_number: string;
-    balance: string;
-    status: string;
-    account_type: string;
-    credit_limit?: string;
-    date_opened?: string;
-    monthly_payment?: string;
-    credit_bureau?: CreditBureau;
-  }>;
-  keywords?: string[];
-  insights?: string;
-  negativeItems?: Array<{
-    type: string;
-    description: string;
-    impact: string;
-  }>;
-}
-
-type ProcessingMethod = 'ocr' | 'ai';
-
-type AccountStatus = "open" | "closed" | "in_collection" | "charged_off" | "disputed";
-type AccountType = "credit_card" | "loan" | "mortgage" | "auto_loan" | "student_loan" | "collection";
-type CreditBureau = "equifax" | "transunion" | "experian" | null;
+import { DocumentAIResponse, ParsedTradeline } from "@/types";
+import { fileToBase64, sanitizeAIResponse } from "@/utils/helpers";
 
 function safeValue<T extends string | number | null | undefined>(v: T): string {
   if (typeof v === "number") return String(v);
   return v ?? "";
 }
-
-// Convert file to base64
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Remove data:application/pdf;base64, prefix
-      resolve(result.split(',')[1]);
-    };
-    reader.onerror = (error: ProgressEvent<FileReader>) => reject(error);
-  });
-};
-
-/**
- * Sanitizes the AI response to ensure it's safe and properly formatted for parsing.
- * @param response - The raw AI response.
- * @returns The sanitized AI response.
- */
-const sanitizeAIResponse = (response: string): string => {
-  // Remove potential harmful characters and normalize whitespace
-  return response
-    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g, '')
-    .trim();
-};
 
 const CreditReportUploadPage = () => {
   const navigate = useNavigate();
@@ -112,10 +35,11 @@ const CreditReportUploadPage = () => {
 
   const workerRef = useRef<Worker | null>(null);
   const [tradelines, setTradelines] = useState<ParsedTradeline[]>([]);
+  const [selectedTradelineIds, setSelectedTradelineIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [manualModalOpen, setManualModalOpen] = useState(false);
-  const [processingMethod, setProcessingMethod] = useState<ProcessingMethod>('ocr');
+  const [processingMethod, setProcessingMethod] = useState<'ocr' | 'ai'>('ocr');
   const [extractedKeywords, setExtractedKeywords] = useState<string[]>([]);
   const [aiInsights, setAiInsights] = useState<string>('');
   const [showAiResults, setShowAiResults] = useState(false);
@@ -123,6 +47,18 @@ const CreditReportUploadPage = () => {
   useEffect(() => {
     console.log("Current tradelines:", tradelines);
   }, [tradelines]);
+
+  const handleSelectTradeline = (id: string, isSelected: boolean) => {
+    setSelectedTradelineIds(prev => {
+      const newSet = new Set(prev);
+      if (isSelected) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
 
   // Initialize OCR worker
   useEffect(() => {
@@ -159,6 +95,77 @@ const CreditReportUploadPage = () => {
     return textContent;
   };
 
+  const processAIResponse = async (aiResponse: string, extractedText: string): Promise<void> => {
+    if (!aiResponse.trim()) {
+      console.warn('AI returned empty response');
+      setAiInsights('AI analysis completed but no insights were generated.');
+      return;
+    }
+
+    try {
+      // Clean up the response - sometimes AI returns markdown code blocks
+      let cleanedResponse = aiResponse.trim();
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/\n?```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/\n?```$/, '');
+      }
+
+      // Sanitize the response before parsing
+      const sanitizedResponse = sanitizeAIResponse(cleanedResponse);
+      const parsedAI: AIAnalysisResponse = JSON.parse(sanitizedResponse);
+      
+      setExtractedKeywords(parsedAI.keywords || []);
+      setAiInsights(parsedAI.insights || '');
+      
+      // Convert AI tradelines to ParsedTradeline format and add to existing tradelines
+      if (parsedAI.tradelines && parsedAI.tradelines.length > 0) {
+        const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
+          creditor_name: tl.creditor_name || '',
+          account_number: tl.account_number || '',
+          account_balance: String(tl.balance || ''),
+          account_status: tl.status || 'open',
+          account_type: tl.account_type || 'credit_card',
+          credit_limit: String(tl.credit_limit || ''),
+          date_opened: tl.date_opened || '',
+          monthly_payment: String(tl.monthly_payment || ''),
+          credit_bureau: tl.credit_bureau || null,
+          user_id: user?.id || '',
+          id: '', // Will be set when saved to database
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+        
+        // Add AI-extracted tradelines to the state
+        setTradelines(prev => [...prev, ...convertedTradelines]);
+        console.log(`Successfully extracted ${convertedTradelines.length} tradelines via AI`);
+      }
+    } catch (jsonError) {
+      console.error('Failed to parse AI response as JSON:', jsonError);
+      console.log('AI Response that failed to parse:', sanitizedResponse);
+      
+      // If JSON parsing fails, treat as plain text insights
+      setAiInsights(aiResponse || 'AI analysis completed but response format was invalid.');
+      
+      // Extract keywords using a simple approach from the original text
+      const keywords = extractedText
+        .toLowerCase()
+        .match(/\b(credit|debt|payment|balance|collection|charge.?off|bankruptcy|foreclosure|late|delinquent|dispute|inquiry)\b/g) || [];
+      setExtractedKeywords([...new Set(keywords)]);
+      
+      // Also try to parse tradelines using the traditional parser as fallback
+      try {
+        const fallbackTradelines = await parseTradelinesFromText(extractedText, user?.id || "");
+        if (fallbackTradelines.length > 0) {
+          setTradelines(prev => [...prev, ...fallbackTradelines]);
+          console.log(`Fallback: extracted ${fallbackTradelines.length} tradelines via traditional parser`);
+        }
+      } catch (parseError) {
+        console.error('Traditional parser also failed:', parseError);
+      }
+    }
+  };
+
   const processWithAI = async (file: File): Promise<string> => {
     try {
       console.log("Calling parseDocumentViaProxy with base64 content...");
@@ -171,10 +178,10 @@ const CreditReportUploadPage = () => {
 
       // Try Document AI first
       try {
-        const documentData = await parseDocumentViaProxy(base64Content) as DocumentAIResponse;
+        const documentData = await parseDocumentViaProxy(base64Content) as DocumentAIResponse | undefined;
         console.log("Document AI response:", documentData);
         
-        if (documentData.document?.text) {
+        if (documentData?.document?.text) {
           extractedText = documentData.document.text;
           documentProcessed = true;
           setUploadProgress(50);
@@ -249,127 +256,10 @@ const CreditReportUploadPage = () => {
           );
 
           setUploadProgress(75);
-
           console.log("Raw AI response:", aiResponse);
-          if (aiResponse.trim()) {
-            try {
-              // Clean up the response - sometimes AI returns markdown code blocks
-              let cleanedResponse = aiResponse.trim();
-              if (cleanedResponse.startsWith('```json')) {
-                cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/\n?```$/, '');
-              } else if (cleanedResponse.startsWith('```')) {
-                cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/\n?```$/, '');
-              }
-
-              // Sanitize the response before parsing
-              const sanitizedResponse = sanitizeAIResponse(cleanedResponse);
-              try {
-                const parsedAI: AIAnalysisResponse = JSON.parse(sanitizedResponse);
-                setExtractedKeywords(parsedAI.keywords || []);
-                setAiInsights(parsedAI.insights || '');
-                
-                // Convert AI tradelines to ParsedTradeline format and add to existing tradelines
-                if (parsedAI.tradelines && parsedAI.tradelines.length > 0) {
-                  const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
-                    creditor_name: tl.creditor_name || '',
-                    account_number: tl.account_number || '',
-                    account_balance: String(tl.balance || '$0'),
-                    account_status: tl.status as AccountStatus || 'open',
-                    account_type: tl.account_type as AccountType || 'credit_card',
-                    credit_limit: String(tl.credit_limit || '$0'),
-                    date_opened: tl.date_opened || 'xxxx/xx/xx',
-                    monthly_payment: String(tl.monthly_payment || '$0'),
-                    credit_bureau: tl.credit_bureau as CreditBureau || '',
-                    user_id: user?.id || '',
-                    id: '', // Will be set when saved to database
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                  }));
-                  
-                  // Add AI-extracted tradelines to the state
-                  setTradelines(prev => [...prev, ...convertedTradelines]);
-                  console.log(`Successfully extracted ${convertedTradelines.length} tradelines via AI`);
-                }
-              } catch (jsonError) {
-                console.error('Failed to parse AI response as JSON:', jsonError);
-                console.log('AI Response that failed to parse:', sanitizedResponse);
-                
-                // If JSON parsing fails, treat as plain text insights
-                setAiInsights(aiResponse || 'AI analysis completed but response format was invalid.');
-                
-                // Extract keywords using a simple approach from the original text
-                const keywords = extractedText
-                  .toLowerCase()
-                  .match(/\b(credit|debt|payment|balance|collection|charge.?off|bankruptcy|foreclosure|late|delinquent|dispute|inquiry)\b/g) || [];
-                setExtractedKeywords([...new Set(keywords)]);
-                
-                // Also try to parse tradelines using the traditional parser as fallback
-                try {
-                  const fallbackTradelines = await parseTradelinesFromText(extractedText, user?.id || "");
-                  if (fallbackTradelines.length > 0) {
-                    setTradelines(prev => [...prev, ...fallbackTradelines]);
-                    console.log(`Fallback: extracted ${fallbackTradelines.length} tradelines via traditional parser`);
-                  }
-                } catch (parseError) {
-                  console.error('Traditional parser also failed:', parseError);
-                }
-              }
-
-              const parsedAI: AIAnalysisResponse = JSON.parse(sanitizedResponse);
-              
-              setExtractedKeywords(parsedAI.keywords || []);
-              setAiInsights(parsedAI.insights || '');
-              
-              // Convert AI tradelines to ParsedTradeline format and add to existing tradelines
-              if (parsedAI.tradelines && parsedAI.tradelines.length > 0) {
-                const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
-                  creditor_name: tl.creditor_name || '',
-                  account_number: tl.account_number || '',
-                  account_balance: String(tl.balance || ''),
-                  account_status: tl.status as AccountStatus || 'open',
-                  account_type: tl.account_type as AccountType || 'credit_card',
-                  credit_limit: String(tl.credit_limit || ''),
-                  date_opened: tl.date_opened || '',
-                  monthly_payment: String(tl.monthly_payment || ''),
-                  credit_bureau: tl.credit_bureau as CreditBureau || '',
-                  user_id: user?.id || '',
-                  id: '', // Will be set when saved to database
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                }));
-                
-                // Add AI-extracted tradelines to the state
-                setTradelines(prev => [...prev, ...convertedTradelines]);
-                console.log(`Successfully extracted ${convertedTradelines.length} tradelines via AI`);
-              }
-            } catch (jsonError) {
-              console.error('Failed to parse AI response as JSON:', jsonError);
-              console.log('AI Response that failed to parse:', aiResponse);
-              
-              // If JSON parsing fails, treat as plain text insights
-              setAiInsights(aiResponse || 'AI analysis completed but response format was invalid.');
-              
-              // Extract keywords using a simple approach from the original text
-              const keywords = extractedText
-                .toLowerCase()
-                .match(/\b(credit|debt|payment|balance|collection|charge.?off|bankruptcy|foreclosure|late|delinquent|dispute|inquiry)\b/g) || [];
-              setExtractedKeywords([...new Set(keywords)]);
-              
-              // Also try to parse tradelines using the traditional parser as fallback
-              try {
-                const fallbackTradelines = await parseTradelinesFromText(extractedText, user?.id || "");
-                if (fallbackTradelines.length > 0) {
-                  setTradelines(prev => [...prev, ...fallbackTradelines]);
-                  console.log(`Fallback: extracted ${fallbackTradelines.length} tradelines via traditional parser`);
-                }
-              } catch (parseError) {
-                console.error('Traditional parser also failed:', parseError);
-              }
-            }
-          } else {
-            console.warn('AI returned empty response');
-            setAiInsights('AI analysis completed but no insights were generated.');
-          }
+          
+          await processAIResponse(aiResponse, extractedText);
+          
         } catch (geminiError) {
           console.error('Gemini analysis failed:', geminiError);
           setAiInsights('AI analysis failed. Using basic keyword extraction.');
@@ -401,6 +291,22 @@ const CreditReportUploadPage = () => {
     }
   };
 
+  const saveTradelines = async () => {
+    if (user && tradelines.length > 0) {
+      try {
+        await saveTradelinesToDatabase(tradelines, user.id);
+        console.log(`Saved ${tradelines.length} tradelines to database`);
+      } catch (saveError) {
+        console.error('Failed to save tradelines:', saveError);
+        toast({
+          title: "Save Warning",
+          description: "Tradelines extracted but failed to save to database.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || file.type !== "application/pdf") {
@@ -425,29 +331,14 @@ const CreditReportUploadPage = () => {
       } else {
         textContent = await processWithOCR(file);
         // Parse tradelines from OCR text using existing parser
-        const parsedPromise = parseTradelinesFromText(textContent, user?.id || "");
-        const parsed = await parsedPromise;
+        const parsed = await parseTradelinesFromText(textContent, user?.id || "");
         setTradelines(parsed);
       }
 
       console.log("User object:", user);
       
-      // Save tradelines to database after a short delay to ensure state is updated
-      setTimeout(async () => {
-        if (user && tradelines.length > 0) {
-          try {
-            await saveTradelinesToDatabase(tradelines, user.id);
-            console.log(`Saved ${tradelines.length} tradelines to database`);
-          } catch (saveError) {
-            console.error('Failed to save tradelines:', saveError);
-            toast({
-              title: "Save Warning",
-              description: "Tradelines extracted but failed to save to database.",
-              variant: "destructive"
-            });
-          }
-        }
-      }, 1000);
+      // Save tradelines to database after processing is complete
+      await saveTradelines();
       
       toast({ 
         title: "Upload complete", 
@@ -465,6 +356,17 @@ const CreditReportUploadPage = () => {
       setUploadProgress(0);
     }
   };
+
+  // Effect to save tradelines when they are updated
+  useEffect(() => {
+    if (tradelines.length > 0) {
+      const timeoutId = setTimeout(() => {
+        saveTradelines();
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [tradelines, user]);
 
   const updateTradeline = (index: number, updated: Partial<ParsedTradeline>) => {
     setTradelines((prev) => {
@@ -497,16 +399,14 @@ const CreditReportUploadPage = () => {
                 <Button
                   variant={processingMethod === 'ocr' ? 'default' : 'outline'}
                   onClick={() => setProcessingMethod('ocr')}
-                  disabled={isUploading}
                 >
                   OCR (Fast)
                 </Button>
                 <Button
                   variant={processingMethod === 'ai' ? 'default' : 'outline'}
                   onClick={() => setProcessingMethod('ai')}
-                  disabled={isUploading}
                 >
-                  AI Enhanced (Slower, More Accurate)
+                  AI Analysis (Advanced)
                 </Button>
               </div>
               
@@ -566,7 +466,18 @@ const CreditReportUploadPage = () => {
                 <p className="text-muted-foreground text-sm">No tradelines found.</p>
               ) : (
                 tradelines.map((t, i) => (
-                  <div key={i} className="border p-4 rounded mb-3 space-y-2">
+                  <div key={t.id || i} className="border p-4 rounded mb-3 space-y-2">
+                    <div className="flex items-center mb-2">
+                      <Checkbox
+                        id={`select-tradeline-${t.id || i}`}
+                        checked={selectedTradelineIds.has(t.id || '')}
+                        onCheckedChange={(checked) => handleSelectTradeline(t.id || '', checked as boolean)}
+                        className="mr-2"
+                      />
+                      <Label htmlFor={`select-tradeline-${t.id || i}`} className="font-semibold">
+                        Select for Dispute
+                      </Label>
+                    </div>
                     <div>
                       <label className="block font-semibold mb-1">Creditor Name</label>
                       <Input
@@ -585,7 +496,7 @@ const CreditReportUploadPage = () => {
                       <label className="block font-semibold mb-1">Status</label>
                       <Input
                         value={safeValue(t.account_status)}
-                        onChange={(e) => updateTradeline(i, { account_status: e.target.value as AccountStatus })}
+                        onChange={(e) => updateTradeline(i, { account_status: e.target.value })}
                       />
                     </div>
                     <div>
@@ -620,7 +531,7 @@ const CreditReportUploadPage = () => {
                       <label className="block font-semibold mb-1">Account Type</label>
                       <Input
                         value={safeValue(t.account_type)}
-                        onChange={(e) => updateTradeline(i, { account_type: e.target.value as AccountType })}
+                        onChange={(e) => updateTradeline(i, { account_type: e.target.value })}
                       />
                     </div>
                     <div>
@@ -637,7 +548,7 @@ const CreditReportUploadPage = () => {
                       <label className="block font-semibold mb-1">Credit Bureau</label>
                       <Input
                         value={safeValue(t.credit_bureau)}
-                        onChange={(e) => updateTradeline(i, { credit_bureau: e.target.value as CreditBureau })}
+                        onChange={(e) => updateTradeline(i, { credit_bureau: e.target.value })}
                       />
                     </div>
                     <div>
@@ -656,7 +567,7 @@ const CreditReportUploadPage = () => {
             </div>
 
             <div className="flex justify-end space-x-4">
-              <Button onClick={handleProceed} disabled={tradelines.length === 0}>
+              <Button onClick={handleProceed} disabled={selectedTradelineIds.size === 0}>
                 Proceed to Step 2
               </Button>
             </div>

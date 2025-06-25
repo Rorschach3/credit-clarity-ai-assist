@@ -1,32 +1,47 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "lib": ["es2020", "dom", "ESNext"],
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
+    "skipLibCheck": true,
     "downlevelIteration": true,
-    "types": ["vite/client", "node","jest", "@testing-library/jest-dom"],
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path mapping */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
-    "jsx": "react-jsx",
-    "noImplicitAny": false,
-    "noUnusedParameters": false,
-    "composite": true,
-    "declaration": true,
-    "skipLibCheck": true,
+
+    /* Additional options for better development experience */
     "allowJs": true,
-    "noUnusedLocals": false,
-    "strictNullChecks": false,
-    "outDir": "./dist/app"
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Testing support */
+    "types": ["node", "jest", "@testing-library/jest-dom"]
   },
-    "include": [
+  "include": [
     "src/**/*",
+    "src/**/*.ts",
     "src/**/*.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "tests/**/*.ts", 
+    "tests/**/*.tsx",
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",
@@ -34,11 +49,7 @@
     "build",
     "coverage",
     "scripts",
-    "src/**/*.test.tsx",
-    "src/**/*.test.ts",
-    "src/**/*.spec.tsx",
-    "src/**/*.spec.ts",
-    "src/**/*.stories.tsx",
-    "src/**/*.stories.ts"
+    "venv",
+    ".venv"
   ]
 }

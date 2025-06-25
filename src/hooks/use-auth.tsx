@@ -68,14 +68,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        return { error };
+        return { error: error as Error };
       }
 
       // Don't manually set user here - let the auth state listener handle it
-      return { data };
+      return {};
     } catch (error) {
       console.error("Login error:", error);
-      return { error };
+      return { error: error as Error };
     }
   };
 
@@ -87,13 +87,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        return { error };
+        return { error: error as Error };
       }
 
-      return { data };
+      return {};
     } catch (error) {
       console.error("Signup error:", error);
-      return { error };
+      return { error: error as Error };
     }
   };
 

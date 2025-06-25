@@ -1,6 +1,6 @@
+// src/pages/DashboardPage.tsx
 import MainLayout from "@/components/layout/MainLayout"
-import { Navbar } from "../components/layout/Navbar"
-import { Overview } from "../components/dashboard/Overview"
+import { Navbar }  from "../components/layout/Navbar"
 import { RecentActivity } from "../components/dashboard/RecentActivity"
 import { DisputeSummary } from "../components/dashboard/DisputeSummary"
 import { CreditScoreCard } from "../components/dashboard/CreditScoreCard"
@@ -21,7 +21,7 @@ const Dashboard = () => {
   return (
    <MainLayout>
     <div className="min-h-screen bg-[#0f111a] text-white flex flex-col">
-
+      <Navbar />
       <main className="flex-grow max-w-7xl mx-auto px-6 md:px-8 py-10 space-y-8">
         <div>
           <h1 className="text-4xl font-bold mb-6">Your Credit Dashboard</h1>
@@ -35,27 +35,6 @@ const Dashboard = () => {
             </TabsList>
           </Tabs>
         </div>
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <CreditScoreCard
-            bureau="Experian"
-            score={scores.experian?.score ?? 645}
-            lastUpdated="14 days ago"
-            change={12}
-          />
-          <CreditScoreCard
-            bureau="TransUnion"
-            score={scores.transunion?.score ?? 658}
-            lastUpdated="14 days ago"
-            change={8}
-          />
-          <CreditScoreCard
-            bureau="Equifax"
-            score={scores.equifax?.score ?? 672}
-            lastUpdated="14 days ago"
-            change={15}
-          />
-        </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RecentActivity />

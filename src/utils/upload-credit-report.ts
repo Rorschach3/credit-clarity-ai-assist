@@ -4,7 +4,7 @@ export async function uploadCreditReport(
   token: string
 ) {
   const res = await fetch(
-    "/functions/upload-pdf",
+    "/functions/add-tradeline",
     {
       method: "POST",
       headers: {
