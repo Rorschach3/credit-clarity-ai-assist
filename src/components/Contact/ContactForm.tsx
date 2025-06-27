@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, easeOut } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { contactFormSchema, ContactFormInputs } from '../../lib/validation/contactFormSchema';
+import { contactFormSchema, ContactFormInputs } from '@/lib/validation/contactFormSchema';
 
 const ContactForm: React.FC = () => {
   const {

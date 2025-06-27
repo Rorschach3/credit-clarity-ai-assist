@@ -167,42 +167,42 @@ export type Database = {
           account_number: string | '';
           credit_bureau?: string | '';
           date_opened?: string | 'xxxx/xx/xx';
-          isNegative: boolean | false;
-          rawText: string;
+          is_negative: boolean | false;
+          raw_text: string;
         };
         Insert: {
-          id: string;
-          user_id: string;
-          creditor_name?: string | '';
-          account_balance?: string | "$0";
+          id?: string;
+          user_id?: string;
+          creditor_name?: string;
+          account_balance?: string;
           account_type?: string;
           account_status?: string;
-          created_at: Date;
-          dispute_count: number | 0;
-          credit_limit?: string | "$0";
-          monthly_payment?: string | "$0";
-          account_number: string | '';
-          credit_bureau: string | '';
-          date_opened?: string | 'xxxx/xx/xx';
-          isNegative: boolean | false;
-          rawText: string;
+          created_at?: string; // Changed to string to match ISO format from Edge Function
+          dispute_count?: number;
+          credit_limit?: string;
+          monthly_payment?: string;
+          account_number?: string;
+          credit_bureau?: string;
+          date_opened?: string;
+          is_negative?: boolean;
+          raw_text?: string;
         };
         Update: {
-          id: string;
-          user_id: string;
-          creditor_name: string | '';
-          account_balance?: string | "$0";
-          account_type?: string | '';
-          account_status?: string | '';
-          created_at: Date;
-          dispute_count: number | 0;
-          credit_limit?: string | "$0";
-          monthly_payment?: string | "$0";
-          account_number: string | '';
-          credit_bureau: string | '';
-          date_opened?: string | "xxxx/xx/xx";
-          isNegative: boolean | false;
-          rawText: string;
+          id?: string;
+          user_id?: string;
+          creditor_name?: string;
+          account_balance?: string;
+          account_type?: string;
+          account_status?: string;
+          created_at?: string; // Changed to string
+          dispute_count?: number;
+          credit_limit?: string;
+          monthly_payment?: string;
+          account_number?: string;
+          credit_bureau?: string;
+          date_opened?: string;
+          is_negative?: boolean;
+          raw_text?: string;
         };
         Relationships: [
           {

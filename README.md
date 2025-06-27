@@ -11,7 +11,7 @@
 
 <div align="center">
 
-** Table of Contents**
+**Table of Contents**
 
 1. [Overview](#overview)
 2. [Key Metrics](#key-metrics)
@@ -33,9 +33,9 @@ Created by a former credit repair specialist, <strong>CreditClarityAI</strong> u
 </p>
 
 <ul>
-  <li> Identify credit‐report errors with high accuracy</li>
-  <li> Generate customized, FCRA-compliant dispute letters</li>
-  <li> Automate the credit-repair workflow</li>
+  <li>Identify credit‐report errors with high accuracy</li>
+  <li>Generate customized, FCRA-compliant dispute letters</li>
+  <li>Automate the credit-repair workflow</li>
 </ul>
 
 
@@ -44,10 +44,10 @@ Created by a former credit repair specialist, <strong>CreditClarityAI</strong> u
 
 ## <span style="color: #D35400;">Features</span>
 
--  <strong>Dispute Generator</strong>: Upload or enter report, AI drafts letters.
--  <strong>OCR Integration</strong>: Scan PDFs & images for errors.
--  <strong>Custom Templates</strong>: Review & edit letters pre-send.
--  <strong>Progress Dashboard</strong>: Track submissions, responses, score changes.
+- <strong>Dispute Generator</strong>: Upload or enter report, AI drafts letters.
+- <strong>OCR Integration</strong>: Scan PDFs & images for errors.
+- <strong>Custom Templates</strong>: Review & edit letters pre-send.
+- <strong>Progress Dashboard</strong>: Track submissions, responses, score changes.
 
 ---
 
@@ -85,30 +85,28 @@ Created by a former credit repair specialist, <strong>CreditClarityAI</strong> u
 ## <span style="color: #7F8C8D;">Getting Started</span>
 
 <ol>
-  <li>**Clone**  
+  <li>Clone  
     <pre><code>git clone https://github.com/rorschach3/credit-clarity-ai-assist.git
-cd creditclarityai</code></pre>
+cd credit-clarity-ai-assist</code></pre>
   </li>
-  <li>**Virtual Env**  
-    <pre><code>python3 -m venv venv
-source venv/bin/activate</code></pre>
+  <li>npm install  
+    <pre><code>npm install</code></pre>
   </li>
-  <li>**Install**  
-    <pre><code>pip install -r requirements.txt</code></pre>
+  <li>Configure  
+    <pre><code>.env.example
+# Fill in your secrets from the .env example file</code></pre>
   </li>
-  <li>**Configure**  
-    <pre><code>cp .env.example .env
-# Fill in FLASK_SECRET_KEY, DATABASE_URL, OCR_SERVICE_KEY</code></pre>
+  <li>Run  
+    <pre><code>npm run dev</code></pre>
   </li>
-  <li>**Migrate DB**  
-    <pre><code>flask db upgrade</code></pre>
+  <li>Test
+    <pre><code>run npm test</code></pre>
   </li>
-  <li>**Run**  
-    <pre><code>flask run --host=0.0.0.0 --port=5000</code></pre>
-  </li>
+  <li>Extended Tests  
+    <pre><code>npm run test:coverage</code></pre>
 </ol>
 
-> Open <a href="http://localhost:5000">localhost:5000</a> in your browser.
+> Open <a href="http://localhost:8080">localhost:8080</a> in your browser.
 
 ---
 
@@ -129,7 +127,28 @@ creditclarityai/
 ├─ .env.example
 └─ run.py          # App entry point
 ```
+<p style="text-align: center; font-weight: bold; font-size: 1.5rem;">
+ Tradeline Data Flow with Duplicate Prevention
+</p>
 
+```mermaid
+graph TD
+    A[User Uploads PDF] --> B(OCR Process)
+    B --> C{Extract Raw Tradeline Text}
+    C --> D[LLM Parser]
+    D --> E{Parsed Tradeline Data}
+    E -- Add user_id and enrich data --> F[Edge Function: add-tradeline]
+    F --> G{Validate Tradelines
+    with Zod Schema}
+    G -- If validation fails --> H[Return 400 Error]
+    G -- If validation passes --> I{Check for Existing Tradelines}
+    I -- Conflict/Duplicate found --> J[UPSERT: Update Existing Tradeline]
+    I -- No conflict/New tradeline --> K[UPSERT: Insert New Tradeline]
+    J --> L[Supabase Database: tradelines table]
+    K --> L
+    L --> M[Return Success Response]
+    F -- Database/Function Error --> N[Return 500 Error]
+  ```
 ---
 
 ## <span style="color: #2C3E50;">FAQ Highlights</span>
@@ -149,8 +168,17 @@ creditclarityai/
 For full FAQs, see [`faq.html`](app/templates/faq.html)
 
 ------------------------
-CreditReportUploadPage.tsx
-TradelinesPage.tsx
-DisputeLetterPage.tsx
-DisputePacketPage.tsx
-DisputeWizardPage.tsx
+```json
+{
+  "creditor_name": "Bank or Credit Union",
+  "account_number": "000000XXXX",
+  "account_balance": "$0",
+  "created_at": "0000-00-00",
+  "credit_limit": "$0",
+  "monthly_payment": "$0",
+  "date_opened": "00/0000",
+  "is_negative": false,
+  "account_type": "credit_card, collection, mortgage, etc.",
+  "account_status": "closed",
+  "dispute_count": 0
+}

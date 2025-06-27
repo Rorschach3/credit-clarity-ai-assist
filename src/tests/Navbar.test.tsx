@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import Navbar from '../components/Navbar/Navbar';
-import { ThemeProvider } from '../components/theme-provider'; // Adjust path if needed
+import { Navbar } from '@/components/layout/Navbar';
+import { ThemeProvider } from '@/components/theme-provider'; // Adjust path if needed
 
 describe('Navbar', () => {
   it('renders navigation links correctly', () => {
@@ -14,10 +14,9 @@ describe('Navbar', () => {
     );
 
     expect(screen.getByText(/Home/i)).toBeInTheDocument();
-    expect(screen.getByText(/Services/i)).toBeInTheDocument();
-    expect(screen.getByText(/Process/i)).toBeInTheDocument();
-    expect(screen.getByText(/Testimonials/i)).toBeInTheDocument();
-    expect(screen.getByText(/Contact/i)).toBeInTheDocument();
+    expect(screen.getByText(/About/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sign-Out/i)).toBeInTheDocument();
+    expect(screen.getByText(/Profile/i)).toBeInTheDocument();
   });
 
   it('renders the business name', () => {

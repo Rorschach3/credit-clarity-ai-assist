@@ -17,8 +17,15 @@ describe('parsePdfDocument', () => {
               {
                 creditor_name: 'Test Bank',
                 account_number: '1234567890',
-                balance: 1000,
-                status: 'open'
+                balance: '$1000',
+                status: 'open',
+                account_type: 'credit_card',
+                date_opened: '2023-01-01',
+                is_negative: false,
+                credit_limit: '$5000',
+                monthly_payment: '$50',
+                dispute_count: 0,
+                raw_text: 'Test Bank - Account 1234567890 - Balance $1000 - Status open - Type credit_card - Opened 2023-01-01'
               }
             ]
           })

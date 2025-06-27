@@ -1,5 +1,5 @@
 import { HarmCategory, HarmBlockThreshold, GoogleGenerativeAI } from "@google/generative-ai";
-import { ParsedTradeline } from "@/utils/tradelineParser";
+
 
 // Helper function to clean and validate JSON responses
 function cleanJsonResponse(responseText: string): string {
@@ -28,54 +28,17 @@ function cleanJsonResponse(responseText: string): string {
   return cleaned;
 }
 
-// Use ParsedTradeline from tradelineParser for consistency
-type TradelineData = ParsedTradeline;
-
-function validateJsonStructure(jsonStr: string): TradelineData {
-  try {
-    const data = JSON.parse(jsonStr);
-
-    // Define default values for fields that might be missing or null
-    const defaults: Partial<ParsedTradeline> = {
-      creditor_name: "",
-      account_number: "",
-      account_balance: "$0",
-      created_at: new Date().toISOString(),
-      credit_limit: "$0",
-      monthly_payment: "$0",
-      date_opened: "",
-      is_negative: false,
-      account_type: "credit_card",
-      account_status: "open",
-    };
-
-    // Apply defaults and ensure correct types
-    const validatedData: ParsedTradeline = {
-      creditor_name: data.creditor_name || defaults.creditor_name!,
-      account_number: data.account_number || defaults.account_number!,
-      account_balance: data.account_balance || defaults.account_balance!,
-      credit_limit: data.credit_limit || defaults.credit_limit!,
-      monthly_payment: data.monthly_payment || defaults.monthly_payment!,
-      date_opened: data.date_opened || defaults.date_opened!,
-      is_negative: typeof data.is_negative === 'boolean' ? data.is_negative : defaults.is_negative!,
-      account_type: (data.account_type && ["credit_card", "loan", "mortgage", "auto_loan", "student_loan", "collection", ""].includes(data.account_type)) ? data.account_type : defaults.account_type!,
-      account_status: (data.account_status && ["open", "closed", "in_collection", "charged_off", "disputed", ""].includes(data.account_status)) ? data.account_status : defaults.account_status!,
-      dispute_count: typeof data.dispute_count === 'number' ? data.dispute_count : 0,
-    };
-
-    return validatedData;
-  } catch (err: unknown) {
-    throw new Error(`Invalid JSON format: ${err instanceof Error ? err.message : 'Unknown error'}`);
-  }
-}
-
-export async function parseDocumentViaProxy(base64: string): Promise<object> {
+export async function parseDocumentViaProxy(base64: string): Promise<string> {
   console.log(`📤 Sending to proxy: /parse-tradeline`);
 
   try {
     const res = await fetch('http://localhost:8000/parse-tradeline', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': process.env.SUPABASE_API_KEY, 'x-supabase-auth': process.env.SUPABASE_AUTH_TOKEN },
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': import.meta.env.VITE_SUPABASE_API_KEY as string,
+        'x-supabase-auth': import.meta.env.VITE_SUPABASE_AUTH_TOKEN as string,
+      },
       body: JSON.stringify({ text: base64 }),
     });
 
@@ -92,38 +55,15 @@ export async function parseDocumentViaProxy(base64: string): Promise<object> {
       throw new Error('Empty response from proxy server');
     }
 
-    try {
-      const cleanedJson = cleanJsonResponse(responseText);
-      console.log(`📥 Cleaned JSON response: ${cleanedJson.substring(0, 500)}...`);
-      return validateJsonStructure(cleanedJson);
-    } catch (jsonErr: unknown) {
-      const errorMessage = jsonErr instanceof Error ? jsonErr.message : 'Unknown error';
-      console.error(`JSON parsing error: ${errorMessage}`);
-      console.error(`Raw response: ${responseText.substring(0, 500)}...`);
-
-      // Return a fallback object that conforms to ParsedTradeline structure
-      const fallback: ParsedTradeline = {
-        creditor_name: "",
-        account_number: "",
-        account_balance: "$0",
-        created_at: new Date().toISOString(),
-        credit_limit: "$0",
-        monthly_payment: "$0",
-        date_opened: "",
-        is_negative: false,
-        account_type: "credit_card",
-        account_status: "open",
-        dispute_count: 0,
-      };
-      return fallback;
-    }
+    const cleanedJson = cleanJsonResponse(responseText);
+    console.log(`📥 Cleaned JSON response: ${cleanedJson.substring(0, 500)}...`);
+    return cleanedJson;
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`Network or server error: ${errorMessage}`);
-    throw err;
+    console.error(`Network or server error in parseDocumentViaProxy: ${errorMessage}`);
+    return "";
   }
 }
-
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 const model = genAI.getGenerativeModel({ 
@@ -228,7 +168,7 @@ export async function sendChatMessage(
 export async function extractTradelineData(
   text: string,
   onChunk?: (chunk: GenerationChunk) => void
-): Promise<ParsedTradeline> {
+): Promise<string> { // Changed return type to string
   if (!text || !text.trim()) {
     throw new Error('Input text is empty');
   }
@@ -274,27 +214,15 @@ export async function extractTradelineData(
      const cleanedJson = cleanJsonResponse(result);
      console.log('Cleaned JSON:', cleanedJson);
      
-     const validatedData = validateJsonStructure(cleanedJson);
-     return validatedData; // Return the object, not JSON string
+     // No longer validate structure here, return cleanedJson string
+     return cleanedJson;
    } catch (err: unknown) {
      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
      console.error(`Tradeline extraction failed: ${errorMessage}`);
  
-     const fallbackData: ParsedTradeline = {
-       creditor_name: "",
-       account_number: "",
-       account_balance: "$0",
-       created_at: new Date().toISOString(),
-       credit_limit: "$0",
-       monthly_payment: "$0",
-       date_opened: "",
-       is_negative: false,
-       account_type: "credit_card",
-       account_status: "open",
-       dispute_count: 0,
-     };
- 
-     return fallbackData; // Return the object, not JSON string
+     // For a fallback, return an empty JSON string or a string with a known error structure
+     // The calling function (parseTradelineWithRetry) handles the fallback Tradeline creation
+     return "";
    }
  }
 

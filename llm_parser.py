@@ -81,14 +81,14 @@ class ParsedTradeline:
 @dataclass
 class ParserConfig:
     """Configuration for the LLM parser"""
-    api_key: Optional[str] = None
-    model_name: str = "gemini-2.0-flash"
+    api_key: Optional[str] = None  # Can be set via environment variable
+    model_name: str = "gemini-2.5-flash"
     temperature: float = 0.2
     top_p: float = 0.8
     max_output_tokens: int = 2048
     max_retries: int = 3
     base_delay: float = 2.0
-    timeout: int = 30
+    timeout: int = 300
     validate_output: bool = True
     fallback_enabled: bool = True
     debug_mode: bool = False
@@ -151,32 +151,27 @@ class TradelineParser:
         account_statuses = [e.value for e in AccountStatus]
         credit_bureaus = [e.value for e in CreditBureau]
         
-        prompt = f"""You are an expert at extracting structured data from credit reports. Extract the following fields from this tradeline section and return ONLY a valid JSON object.
+        prompt = f"""You are a data extraction agent. Parse the following credit report text and return one JSON object containing these fields:
 
-REQUIRED OUTPUT FORMAT (JSON only, no markdown, no explanations):
-{{
-    "creditor_name": "string (company/bank name, empty if not found)",
-    "account_number": "string (full account number, empty if not found)",
-    "account_balance": "string (format: $X,XXX, use $0 if not found)",
-    "created_at": "{datetime.now().isoformat()}",
-    "credit_limit": "string (format: $X,XXX, use $0 if not found)",
-    "monthly_payment": "string (format: $X,XXX, use $0 if not found)",
-    "date_opened": "string (MM/DD/YYYY format, use "xxxx/xx/xx" if not found)",
-    "is_negative": "boolean (true if derogatory/negative, false otherwise)",
-    "account_type": "string (must be one of: {', '.join(account_types)})",
-    "account_status": "string (must be one of: {', '.join(account_statuses)})",
-    "credit_bureau": "string (must be one of: {', '.join(credit_bureaus)})",
-    "user_id": "string (leave blank, will be filled by client)",
-}}
+            - creditor_name (string)
+            - account_number (string)
+            - account_balance (string with $)
+            - credit_limit (string with $)
+            - monthly_payment (string with $)
+            - account_status (string: open, closed, etc.)
+            - account_type (string)
+            - date_opened (YYYY-MM-DD or "Unknown")
+            - credit_bureau (equifax, experian, transunion, or "")
+            - is_negative (boolean)
+            - raw_text (original snippet that was parsed)
 
-EXTRACTION RULES:
-1. Extract exactly what's present in the text
-2. Use empty strings for missing text fields
-3. Use $0 for missing monetary amounts
-4. Infer account_type from context (e.g., "Chase Credit Card" → "credit_card")
-5. Determine is_negative from keywords like: collection, charge-off, delinquent, past due
-6. Use the first valid date found for date_opened, format as YYYY/MM/DD
-7. Return ONLY the JSON object - no additional text
+            EXTRACTION RULES:
+            0. If a field is not found, return an empty string ("") or false where appropriate. Return **only JSON**. Do not include explanations.
+            1. Use empty strings for missing text fields
+            2. Infer account_type from context (e.g., "Chase Credit Card" → "credit_card")
+            3. Determine is_negative from keywords like: collection, charge-off, delinquent, past due
+            4. Use the first valid date found for date_opened, format as MM/DDYYYY
+            5. Return ONLY the JSON object - no additional text
 
 TRADELINE TEXT:
 {text}"""

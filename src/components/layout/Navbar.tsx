@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +16,12 @@ import { ModeToggle } from "@/components/layout/ModeToggle";
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { theme } = useTheme();
 
   return (
     <header className="bg-background border-b">
       <div className="container flex items-center justify-between h-10">
         <Link to="/" className="font-bold text-xl">
-          CreditDispute
+          Credit Clarity
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
@@ -33,12 +31,9 @@ export function Navbar() {
           <Link to="/admin" className="text-sm font-medium transition-colors hover:text-primary">
             Admin
           </Link>
-          <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
-            Dashboard
-          </Link>
-          <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary">
+          {/* <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary">
             Blog
-          </Link>
+          </Link> */}
           <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
             About
           </Link>
@@ -123,14 +118,8 @@ export function Navbar() {
               <Link to="/about" className="block text-sm font-medium transition-colors hover:text-primary">
                 About
               </Link>
-              <Link to="/admin" className="block text-sm font-medium transition-colors hover:text-primary">
-                Admin
-              </Link>
               <Link to="/blog" className="block text-sm font-medium transition-colors hover:text-primary">
                 Blog
-              </Link>
-              <Link to="/contact" className="block text-sm font-medium transition-colors hover:text-primary">
-                Contact
               </Link>
               <Link to="/credit-reports" className="block text-sm font-medium transition-colors hover:text-primary">
                 Credit Reports
@@ -138,53 +127,14 @@ export function Navbar() {
               <Link to="/credit-report-upload" className="block text-sm font-medium transition-colors hover:text-primary">
                 Credit Report Upload
               </Link>
-              <Link to="/dashboard" className="block text-sm font-medium transition-colors hover:text-primary">
-                Dashboard
-              </Link>
-              <Link to="/dispute-letter" className="block text-sm font-medium transition-colors hover:text-primary">
-                Dispute Letter
-              </Link>
-              <Link to="/dispute-packet" className="block text-sm font-medium transition-colors hover:text-primary">
-                Dispute Packet
-              </Link>
-              <Link to="/dispute-wizard2" className="block text-sm font-medium transition-colors hover:text-primary">
-                Dispute Wizard 2
-              </Link>
               <Link to="/faq" className="block text-sm font-medium transition-colors hover:text-primary">
                 FAQ
-              </Link>
-              <Link to="/features" className="block text-sm font-medium transition-colors hover:text-primary">
-                Features
-              </Link>
-              <Link to="/forgot-password" className="block text-sm font-medium transition-colors hover:text-primary">
-                Forgot Password
-              </Link>
-              <Link to="/login" className="block text-sm font-medium transition-colors hover:text-primary">
-                Login
-              </Link>
-              <Link to="/negative-tradelines" className="block text-sm font-medium transition-colors hover:text-primary">
-                Negative Tradelines
-              </Link>
-              <Link to="/not-found" className="block text-sm font-medium transition-colors hover:text-primary">
-                Not Found
-              </Link>
-              <Link to="/not-found-page" className="block text-sm font-medium transition-colors hover:text-primary">
-                Not Found Page
               </Link>
               <Link to="/pricing" className="block text-sm font-medium transition-colors hover:text-primary">
                 Pricing
               </Link>
               <Link to="/profile" className="block text-sm font-medium transition-colors hover:text-primary">
                 Profile
-              </Link>
-              <Link to="/reset-password" className="block text-sm font-medium transition-colors hover:text-primary">
-                Reset Password
-              </Link>
-              <Link to="/signup" className="block text-sm font-medium transition-colors hover:text-primary">
-                Sign Up
-              </Link>
-              <Link to="/testimonials" className="block text-sm font-medium transition-colors hover:text-primary">
-                Testimonials
               </Link>
               {!user ? (
                 <>

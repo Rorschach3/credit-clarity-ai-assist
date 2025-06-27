@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react";
 import { createWorker, Worker } from "tesseract.js";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,15 +14,60 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { pdfToImages } from "@/utils/pdfToImage";
 import { useAuth } from "@/hooks/use-auth";
 import MainLayout from "@/components/layout/MainLayout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   saveTradelinesToDatabase,
-  parseTradelinesFromText
+  parseTradelinesFromText,
+  validateAccountType, 
+  validateAccountStatus 
 } from "@/utils/tradelineParser";
 import { ManualTradelineModal } from "@/components/disputes/ManualTradelineModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parseDocumentViaProxy, generateContent } from "@/services/llm-parser";
 import { DocumentAIResponse, ParsedTradeline } from "@/types";
 import { fileToBase64, sanitizeAIResponse } from "@/utils/helpers";
+import { v4 as uuidv4 } from 'uuid';
+// Define the AI analysis response interface
+interface AIAnalysisResponse {
+  tradelines?: Array<{
+    creditor_name?: string;
+    account_number?: string;
+    account_balance?: string;
+    account_status?: string;
+    account_type?: string;
+    credit_limit?: string;
+    date_opened?: string;
+    monthly_payment?: string;    
+    credit_bureau?: string;
+    is_negative?: boolean;
+    dispute_count?: number;
+    raw_text?: string; // Added to match ParsedTradeline
+  }>;
+  keywords?: string[];
+  insights?: string;
+  negativeItems?: Array<{
+    type: string;
+    description: string;
+    impact: string;
+  }>;
+}
+interface TradelineItem {
+  id?: string;
+  creditor_name?: string;
+  account_number?: string;
+  account_balance?: string;
+  account_status?: string;
+  account_type?: string;
+  credit_limit?: string;
+  date_opened?: string;
+  monthly_payment?: string;
+  is_negative?: boolean;
+  dispute_count?: number;
+  credit_bureau?: string;
+  created_at?: string;
+  raw_text?: string;
+  user_id?: string;
+}
 
 function safeValue<T extends string | number | null | undefined>(v: T): string {
   if (typeof v === "number") return String(v);
@@ -43,6 +88,10 @@ const CreditReportUploadPage = () => {
   const [extractedKeywords, setExtractedKeywords] = useState<string[]>([]);
   const [aiInsights, setAiInsights] = useState<string>('');
   const [showAiResults, setShowAiResults] = useState(false);
+
+
+
+
 
   useEffect(() => {
     console.log("Current tradelines:", tradelines);
@@ -120,29 +169,52 @@ const CreditReportUploadPage = () => {
       
       // Convert AI tradelines to ParsedTradeline format and add to existing tradelines
       if (parsedAI.tradelines && parsedAI.tradelines.length > 0) {
-        const convertedTradelines: ParsedTradeline[] = parsedAI.tradelines.map(tl => ({
-          creditor_name: tl.creditor_name || '',
-          account_number: tl.account_number || '',
-          account_balance: String(tl.balance || ''),
-          account_status: tl.status || 'open',
-          account_type: tl.account_type || 'credit_card',
-          credit_limit: String(tl.credit_limit || ''),
-          date_opened: tl.date_opened || '',
-          monthly_payment: String(tl.monthly_payment || ''),
-          credit_bureau: tl.credit_bureau || null,
-          user_id: user?.id || '',
-          id: '', // Will be set when saved to database
+        const convertedTradelines = parsedAI.tradelines.map((item) => ({
+          id: uuidv4(),
+          creditor_name: item.creditor_name || '',
+          account_number: item.account_number || '',
+          account_balance: item.account_balance || '$0',
+          account_status: validateAccountStatus(item.account_status || "") || "",
+          account_type: validateAccountType(item.account_type) || "credit_card",
+          credit_limit: item.credit_limit || '$0',
+          date_opened: item.date_opened || '',
+          monthly_payment: item.monthly_payment || '$0',
+          is_negative: Boolean(item.is_negative),
+          dispute_count: Number(item.dispute_count) || 0,
+          credit_bureau: validateCreditBureau(item.credit_bureau) || '',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          raw_text: extractedText, // Add this required property
+          user_id: user?.id || ''
         }));
-        
-        // Add AI-extracted tradelines to the state
-        setTradelines(prev => [...prev, ...convertedTradelines]);
+
+        const transformToValidTradeline = (item: TradelineItem): ParsedTradeline => ({
+          id: item.id,
+          creditor_name: item.creditor_name || '',
+          account_number: item.account_number || '',
+          account_balance: item.account_balance || '$0',
+          account_status: validateAccountStatus(item.account_status) || "",
+          account_type: validateAccountType(item.account_type) || "credit_card",
+          credit_limit: item.credit_limit || '$0',
+          date_opened: item.date_opened || '',
+          monthly_payment: item.monthly_payment || '$0',
+          is_negative: Boolean(item.is_negative),
+          dispute_count: Number(item.dispute_count) || 0,
+          credit_bureau: validateCreditBureau(item.credit_bureau) || "", // Ensure valid union type
+          created_at: item.created_at || new Date().toISOString(),
+          raw_text: item.raw_text || '',
+          user_id: item.user_id || user?.id || ''
+        });
+
+        // When updating tradelines state
+        setTradelines(prev => [
+          ...prev,
+          ...convertedTradelines.map(transformToValidTradeline)
+        ]);
         console.log(`Successfully extracted ${convertedTradelines.length} tradelines via AI`);
       }
     } catch (jsonError) {
       console.error('Failed to parse AI response as JSON:', jsonError);
-      console.log('AI Response that failed to parse:', sanitizedResponse);
+      console.log('AI Response that failed to parse:', sanitizeAIResponse);
       
       // If JSON parsing fails, treat as plain text insights
       setAiInsights(aiResponse || 'AI analysis completed but response format was invalid.');
@@ -291,9 +363,10 @@ const CreditReportUploadPage = () => {
     }
   };
 
-  const saveTradelines = async () => {
+  const saveTradelines = useCallback(async () => {
     if (user && tradelines.length > 0) {
       try {
+        console.log('Parsed tradelines before saving:', tradelines);
         await saveTradelinesToDatabase(tradelines, user.id);
         console.log(`Saved ${tradelines.length} tradelines to database`);
       } catch (saveError) {
@@ -305,23 +378,30 @@ const CreditReportUploadPage = () => {
         });
       }
     }
-  };
+  }, [user, tradelines]);
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || file.type !== "application/pdf") {
-      toast({ title: "Invalid file", description: "Please upload a PDF file." });
-      return;
-    }
-
-    setIsUploading(true);
-    setTradelines([]); // Clear previous tradelines on new upload
-    setUploadProgress(0);
-    setExtractedKeywords([]);
-    setAiInsights('');
-    setShowAiResults(false);
-
+    console.log("handleFileUpload triggered");
     try {
+      const file = event.target.files?.[0];
+      if (!file || file.type !== "application/pdf") {
+        toast({ title: "Invalid file", description: "Please upload a PDF file." });
+        console.warn("Invalid file type or no file selected.");
+        return;
+      }
+      if (!user || !user.id) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        console.error("User not logged in or user.id is missing.");
+        return;
+      }
+
+      setIsUploading(true);
+      setTradelines([]); // Clear previous tradelines on new upload
+      setUploadProgress(0);
+      setExtractedKeywords([]);
+      setAiInsights('');
+      setShowAiResults(true);
+
       let textContent = '';
       
       if (processingMethod === 'ai') {
@@ -331,23 +411,28 @@ const CreditReportUploadPage = () => {
       } else {
         textContent = await processWithOCR(file);
         // Parse tradelines from OCR text using existing parser
-        const parsed = await parseTradelinesFromText(textContent, user?.id || "");
-        setTradelines(parsed);
+        try {
+          const parsed = await parseTradelinesFromText(textContent, user.id);
+          setTradelines(parsed);
+          console.log("Parsed tradelines successfully", parsed);
+        } catch (parseError) {
+          console.error("Tradeline parsing failed:", parseError);
+          toast({ title: "Error", description: "Failed to parse tradelines.", variant: "destructive" });
+        }
       }
 
       console.log("User object:", user);
+      console.log("Tradelines prepared for saving:", tradelines);
       
-      // Save tradelines to database after processing is complete
-      await saveTradelines();
       
-      toast({ 
-        title: "Upload complete", 
-        description: `Document processed using ${processingMethod.toUpperCase()}.` 
+      toast({
+        title: "Upload complete",
+        description: `Document processed using ${processingMethod.toUpperCase()}.`
       });
     } catch (error) {
-      console.error("PDF processing error:", error instanceof Error ? error.message : String(error));
-      toast({ 
-        title: "Error", 
+      console.error("PDF processing error (caught in handleFileUpload):", error instanceof Error ? error.message : String(error));
+      toast({
+        title: "Error",
         description: "Failed to process PDF. Please try again or use a different processing method.",
         variant: "destructive"
       });
@@ -359,14 +444,15 @@ const CreditReportUploadPage = () => {
 
   // Effect to save tradelines when they are updated
   useEffect(() => {
-    if (tradelines.length > 0) {
+    if (tradelines.length > 0 && user?.id) {
+      console.log("useEffect triggered to save tradelines:", tradelines); // Added for debugging
       const timeoutId = setTimeout(() => {
         saveTradelines();
       }, 1000);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [tradelines, user]);
+  }, [tradelines, user, saveTradelines]);
 
   const updateTradeline = (index: number, updated: Partial<ParsedTradeline>) => {
     setTradelines((prev) => {
@@ -469,12 +555,12 @@ const CreditReportUploadPage = () => {
                   <div key={t.id || i} className="border p-4 rounded mb-3 space-y-2">
                     <div className="flex items-center mb-2">
                       <Checkbox
-                        id={`select-tradeline-${t.id || i}`}
+                        id={`select-tradeline-${t.id}`}
                         checked={selectedTradelineIds.has(t.id || '')}
                         onCheckedChange={(checked) => handleSelectTradeline(t.id || '', checked as boolean)}
                         className="mr-2"
                       />
-                      <Label htmlFor={`select-tradeline-${t.id || i}`} className="font-semibold">
+                      <Label htmlFor={`select-tradeline-${t.id}`} className="font-semibold">
                         Select for Dispute
                       </Label>
                     </div>
@@ -494,15 +580,28 @@ const CreditReportUploadPage = () => {
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Status</label>
-                      <Input
+                      <Select
                         value={safeValue(t.account_status)}
-                        onChange={(e) => updateTradeline(i, { account_status: e.target.value })}
-                      />
+                        onValueChange={(value) => updateTradeline(i, {
+                          account_status: value as "" | "open" | "closed" | "in_collection" | "charged_off" | "disputed"
+                        })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="closed">Closed</SelectItem>
+                          <SelectItem value="in_collection">In Collection</SelectItem>
+                          <SelectItem value="charged_off">Charged Off</SelectItem>
+                          <SelectItem value="disputed">Disputed</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Balance</label>
                       <Input
-                        type="number"
+                        type="text"
                         value={safeValue(t.account_balance)}
                         onChange={(e) =>
                           updateTradeline(i, { account_balance: e.target.value })
@@ -512,7 +611,7 @@ const CreditReportUploadPage = () => {
                     <div>
                       <label className="block font-semibold mb-1">Credit Limit</label>
                       <Input
-                        type="number"
+                        type="text"
                         value={safeValue(t.credit_limit)}
                         onChange={(e) =>
                           updateTradeline(i, { credit_limit: e.target.value })
@@ -528,27 +627,31 @@ const CreditReportUploadPage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Account Type</label>
-                      <Input
-                        value={safeValue(t.account_type)}
-                        onChange={(e) => updateTradeline(i, { account_type: e.target.value })}
-                      />
-                    </div>
+                  <label className="block font-semibold mb-1">Credit Bureau</label>
+                  <Select
+                    value={safeValue(t.credit_bureau)}
+                    onValueChange={(value) => updateTradeline(i, {
+                      credit_bureau: value as "equifax" | "transunion" | "experian"
+                    })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select credit bureau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equifax">Equifax</SelectItem>
+                      <SelectItem value="experian">Experian</SelectItem>
+                      <SelectItem value="transunion">TransUnion</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                     <div>
                       <label className="block font-semibold mb-1">Monthly Payment</label>
                       <Input
-                        type="number"
+                        type="text"
                         value={safeValue(t.monthly_payment)}
                         onChange={(e) =>
                           updateTradeline(i, { monthly_payment: e.target.value })
                         }
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">Credit Bureau</label>
-                      <Input
-                        value={safeValue(t.credit_bureau)}
-                        onChange={(e) => updateTradeline(i, { credit_bureau: e.target.value })}
                       />
                     </div>
                     <div>
@@ -586,3 +689,9 @@ const CreditReportUploadPage = () => {
 };
 
 export default CreditReportUploadPage;
+
+function validateCreditBureau(credit_bureau: string | undefined): 'equifax' | 'transunion' | 'experian' | '' {
+  if (!credit_bureau) return '';
+  const validBureaus = ['equifax', 'transunion', 'experian', ''];
+  return validBureaus.includes(credit_bureau) ? credit_bureau as 'equifax' | 'transunion' | 'experian' : '';
+}
