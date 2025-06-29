@@ -10,7 +10,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],  # Add your frontend URL
+    allow_origins=["*"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,8 +21,6 @@ class TradelineRequest(BaseModel):
 
 @app.post("/parse-tradeline")
 async def parse_tradeline_endpoint(request: TradelineRequest):
-    from llm_parser import parse_tradeline
-
     try:
         print(f"✅ Received request with text length: {len(request.text)}")
         print(f"✅ First 100 chars: {request.text[:100]}")
@@ -36,19 +34,28 @@ async def parse_tradeline_endpoint(request: TradelineRequest):
             print("❌ LLM returned None")
             raise HTTPException(status_code=500, detail="LLM returned None")
 
-        if not isinstance(result, str) or not result.strip():
-            print("❌ LLM returned empty or invalid response")
-            raise HTTPException(status_code=500, detail="LLM returned empty or invalid response")
+        # Check if result is already a dictionary (which it should be)
+        if isinstance(result, dict):
+            print(f"✅ Got dictionary with {len(result)} fields")
+            return result
+        
+        # If it's a string, try to parse it as JSON
+        if isinstance(result, str) and result.strip():
+            try:
+                parsed = json.loads(result.strip())
+                print(f"✅ Successfully parsed JSON string with {len(parsed)} fields")
+                return parsed
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON decode error: {e}")
+                print(f"🔍 Problematic response: {repr(result)}")
+                raise HTTPException(status_code=500, detail=f"Invalid JSON response from LLM: {str(e)}")
+        
+        # If we get here, something unexpected happened
+        print(f"❌ Unexpected result type: {type(result)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected response type: {type(result)}")
 
-        try:
-            parsed = json.loads(result.strip())
-            print(f"✅ Successfully parsed JSON with {len(parsed)} fields")
-            return parsed
-        except json.JSONDecodeError as e:
-            print(f"❌ JSON decode error: {e}")
-            print(f"🔍 Problematic response: {repr(result)}")
-            raise HTTPException(status_code=500, detail=f"Invalid JSON response from LLM: {str(e)}")
-
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
         import traceback

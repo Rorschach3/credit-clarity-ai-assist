@@ -1,36 +1,53 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "../../tests/test-utils"; // Import custom render
 import "@testing-library/jest-dom";
 import CreditReportUploadPage from "@/pages/CreditReportUploadPage";
 import { pdfToImages } from "@/utils/pdfToImage";
 import { parseTradelinesFromText, saveTradelinesToDatabase } from "@/utils/tradelineParser";
 import { createWorker } from "tesseract.js";
 
-// Mock dependencies
-jest.mock("@/hooks/use-auth", () => ({
-  useAuth: () => ({
-    user: { id: "test-user-id", email: "test@example.com" }
-  })
+// Directly mock useAuth for this test file
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: jest.fn(() => ({
+    user: {
+      id: 'mock-user-id', // Consistent mock user ID
+      email: 'test@example.com',
+      aud: 'authenticated',
+      app_metadata: {},
+      user_metadata: {},
+      created_at: new Date().toISOString(),
+      identities: [],
+    },
+    isLoading: false,
+    login: jest.fn(),
+    signup: jest.fn(),
+    logout: jest.fn(),
+    signOut: jest.fn(),
+  })),
 }));
 
+// Mock dependencies
+// Mock useNavigate from react-router-dom
+const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
-  useNavigate: () => jest.fn()
+  ...jest.requireActual("react-router-dom"), // Use actual for other exports
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock("@/utils/pdfToImage", () => ({
-  pdfToImages: jest.fn()
+  pdfToImages: jest.fn(),
 }));
 
 jest.mock("@/utils/tradelineParser", () => ({
   parseTradelinesFromText: jest.fn(),
-  saveTradelinesToDatabase: jest.fn()
+  saveTradelinesToDatabase: jest.fn(),
 }));
 
 // Mock tesseract.js
 jest.mock("tesseract.js", () => ({
   createWorker: jest.fn(() => ({
     recognize: jest.fn(() => Promise.resolve({ data: { text: "mocked OCR text" } })),
-    terminate: jest.fn()
-  }))
+    terminate: jest.fn(),
+  })),
 }));
 
 describe("CreditReportUploadPage", () => {
@@ -50,7 +67,7 @@ describe("CreditReportUploadPage", () => {
     expect(screen.getByLabelText("Upload Credit Report (PDF)")).toBeInTheDocument();
     expect(screen.getByText("+ Add Tradeline Manually")).toBeInTheDocument();
     expect(screen.getByText("No tradelines found.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Proceed to Step 2" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Proceed to Dispute Letter" })).toBeDisabled(); // Update to match actual button text
   });
 
   it("should handle PDF file upload and OCR processing", async () => {
@@ -67,10 +84,10 @@ describe("CreditReportUploadPage", () => {
       expect(pdfToImages).toHaveBeenCalledWith(expect.any(ArrayBuffer));
       expect(createWorker).toHaveBeenCalledWith("eng");
       expect((createWorker as jest.Mock).mock.results[0].value.recognize).toHaveBeenCalledWith("image1.png");
-      expect(parseTradelinesFromText).toHaveBeenCalledWith("mocked OCR text\n", "test-user-id");
+      expect(parseTradelinesFromText).toHaveBeenCalledWith("mocked OCR text\n", "mock-user-id");
       expect(saveTradelinesToDatabase).toHaveBeenCalledWith(
         [{ id: "1", creditor_name: "Creditor A", account_number: "123", account_balance: "1000", account_status: "Open" }],
-        "test-user-id"
+        "mock-user-id"
       );
       expect(screen.getByText("Upload complete")).toBeInTheDocument();
     });
@@ -159,15 +176,12 @@ describe("CreditReportUploadPage", () => {
     fireEvent.click(checkbox);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Proceed to Step 2" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Proceed to Dispute Letter" })).toBeEnabled();
     });
   });
 
   it("should navigate to dispute-letter page on proceed", async () => {
-    const mockNavigate = jest.fn();
-    jest.mock("react-router-dom", () => ({
-      useNavigate: () => mockNavigate
-    }));
+    // This test case now belongs here within the describe block
     render(<CreditReportUploadPage />);
 
     const file = new File(["dummy pdf content"], "report.pdf", { type: "application/pdf" });
@@ -178,7 +192,7 @@ describe("CreditReportUploadPage", () => {
     const checkbox = screen.getByLabelText("Select for Dispute");
     fireEvent.click(checkbox);
 
-    const proceedButton = screen.getByRole("button", { name: "Proceed to Step 2" });
+    const proceedButton = screen.getByRole("button", { name: "Proceed to Dispute Letter" });
     fireEvent.click(proceedButton);
 
     await waitFor(() => {

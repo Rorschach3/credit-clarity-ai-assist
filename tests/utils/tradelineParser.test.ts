@@ -2,7 +2,7 @@
 import { parseTradelinesFromText } from '../../src/utils/tradelineParser';
 
 describe('parseTradelinesFromText', () => {
-  const mockUserId = 'test-user-123';
+  const mockUserId = '00000000-0000-4000-8000-000000000001';
 
   it('should parse basic tradeline information', async () => {
     const text = `
@@ -94,4 +94,6 @@ describe('parseTradelinesFromText', () => {
     expect(tradelines).toBeDefined();
     expect(Array.isArray(tradelines)).toBe(true);
   });
+
+
 });

@@ -7,7 +7,7 @@ const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
 // Types for AI analysis results
 export interface ExtractedText {
-  rawText: string;
+  raw_text: string;
   structuredData: {
     personalInfo?: {
       name?: string;

@@ -18,6 +18,7 @@ import ProcessTimeline from './components/Process/ProcessTimeline';
 import CreditReportUploadPage from './pages/CreditReportUploadPage';
 import DisputeWizardPage from './pages/DisputeWizardPage';
 import DisputeLetterPage from './pages/DisputeLetterPage';
+import ContactPage from '@/pages/ContactPage'; // Added import for ContactPage
 import ContactForm from './components/Contact/ContactForm';
 import Footer from './components/Footer/Footer';
 import MainLayout from './components/layout/MainLayout';
@@ -39,7 +40,9 @@ function AppContent() {
 
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
+    if (theme) {
+      document.documentElement.classList.add(theme);
+    }
   }, [theme]);
 
   if (isLoading) {
@@ -52,17 +55,16 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <Navbar />
       <main>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={
-              <>
+              <MainLayout>
                 <Hero />
                 <ServicesGrid />
-                <ProcessTimeline />                 
+                <ProcessTimeline />
                 <ContactForm />
-              </>
+              </MainLayout>
             } />
             <Route path="/home" element={<HomePage />} />
             <Route path="/signup" element={<SignupPage />} />
@@ -79,8 +81,8 @@ function AppContent() {
                 <TradelinesPage />
               </MainLayout>
             } />
-            {/* Commented out routes for future implementation
             <Route path="/contact" element={<ContactPage />} />
+            {/* Commented out routes for future implementation
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/features" element={<FeaturesPage />} />

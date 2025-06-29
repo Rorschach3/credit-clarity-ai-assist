@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2021", // Or a compatible target for Node.js
+    "jsx": "react-jsx",
+    "isolatedModules": false, // Allow non-module files if needed
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "scripts",
+    "venv",
+    ".venv"
+  ]
+}

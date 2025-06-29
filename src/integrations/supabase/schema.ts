@@ -160,49 +160,49 @@ export type Database = {
           account_balance?: string | '$0';
           account_type?: string | '';
           account_status?: string | '';
-          created_at: Date;
+          created_at: string;
           dispute_count: number | 0;
           credit_limit?: string | '$0';
           monthly_payment?: string | '$0';
           account_number: string | '';
           credit_bureau?: string | '';
           date_opened?: string | 'xxxx/xx/xx';
-          is_negative: boolean | false;
-          raw_text: string;
+          is_negative: boolean;
+          rawText: string | null;
         };
         Insert: {
           id?: string;
-          user_id?: string;
-          creditor_name?: string;
-          account_balance?: string;
-          account_type?: string;
-          account_status?: string;
-          created_at?: string; // Changed to string to match ISO format from Edge Function
-          dispute_count?: number;
-          credit_limit?: string;
-          monthly_payment?: string;
-          account_number?: string;
-          credit_bureau?: string;
-          date_opened?: string;
+          user_id: string;
+          creditor_name?: string | null;
+          account_balance?: string | null;
+          account_type?: string | null;
+          account_status?: string | null;
+          created_at?: string;
+          dispute_count?: number | null;
+          credit_limit?: string | null;
+          monthly_payment?: string | null;
+          account_number?: string | null;
+          credit_bureau?: string | null;
+          date_opened?: string | null;
           is_negative?: boolean;
-          raw_text?: string;
+          rawText?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
-          creditor_name?: string;
-          account_balance?: string;
-          account_type?: string;
-          account_status?: string;
-          created_at?: string; // Changed to string
-          dispute_count?: number;
-          credit_limit?: string;
-          monthly_payment?: string;
-          account_number?: string;
-          credit_bureau?: string;
-          date_opened?: string;
+          creditor_name?: string | null;
+          account_balance?: string | null;
+          account_type?: string | null;
+          account_status?: string | null;
+          created_at?: string;
+          dispute_count?: number | null;
+          credit_limit?: string | null;
+          monthly_payment?: string | null;
+          account_number?: string | null;
+          credit_bureau?: string | null;
+          date_opened?: string | null;
           is_negative?: boolean;
-          raw_text?: string;
+          rawText?: string | null;
         };
         Relationships: [
           {
@@ -338,21 +338,24 @@ export type Database = {
           id: string;
           content?: string;
           metadata?: string;
-          embedding?: string
+          embedding?: string;
+          status: string;
           user_id: string;
         };
         Insert: {
           id: string;
           content?: string;
           metadata?: string;
-          embedding?: string
+          embedding?: string;
+          status?: string;
           user_id: string;
         };
         Update: {
           id: string;
           content?: string;
           metadata?: string;
-          embedding?: string
+          embedding?: string;
+          status?: string;
           user_id: string;
         };
         Relationships: [

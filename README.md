@@ -182,3 +182,42 @@ For full FAQs, see [`faq.html`](app/templates/faq.html)
   "account_status": "closed",
   "dispute_count": 0
 }
+
+
+
+Here’s a phased breakdown for transitioning your Credit Dispute Program to AI-powered parsing and extraction:
+
+Phase 1: Foundations & Preparation
+Assess and document current parsing/data flow.
+Select LLM provider (OpenAI, Claude, Gemini, etc.).
+Update type definitions for tradeline data to match expected LLM output.
+Ensure PDF text extraction (e.g., pdf.js) is robust and tested.
+Phase 2: LLM Integration
+Implement LLM API integration:
+Build a service/module to send extracted PDF text to the LLM and receive structured data.
+If needed, set up a backend proxy for secure API key handling.
+Develop prompt templates for reliable tradeline extraction.
+Add error handling for LLM/API failures and malformed output.
+Phase 3: Workflow Refactor
+Replace rule-based parsing with LLM-powered extraction in the workflow.
+Update data flow so UI and downstream components consume the new AI-extracted tradeline format.
+Refactor or remove old manual parsing logic and related tests.
+Phase 4: UI & User Experience
+Update UI components to handle the new data shape and display errors if extraction fails.
+Enhance user feedback (loading states, error messages) during AI extraction.
+Test end-to-end: Upload → AI extraction → Tradeline selection → Letter generation.
+Phase 5: Security, Testing & Documentation
+Review security of API calls and sensitive data handling (especially if using a backend proxy).
+Expand tests to cover LLM integration, including mock API responses and error scenarios.
+Update documentation for developers and users to reflect the new AI-driven workflow and privacy considerations.
+Summary Table:
+
+| Phase         | Key Activities                                               |
+|---------------|-------------------------------------------------------------|
+| 1. Foundations| Audit, select LLM, update types, test PDF extraction        |
+| 2. LLM Int.   | Implement LLM API, prompt design, error handling            |
+| 3. Refactor   | Swap parsing logic, update data flow, remove old code       |
+| 4. UI/UX      | Update UI, add feedback, test end-to-end                    |
+| 5. Sec/Test/Doc| Secure API, expand tests, update documentation             |
+
+This phased approach ensures a smooth, testable, and maintainable transition to AI-powered data extraction.

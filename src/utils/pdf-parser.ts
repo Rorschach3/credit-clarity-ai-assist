@@ -58,12 +58,50 @@ export async function parsePdfDocument(filePath: string, apiKey: string) {
                         "address": {
                             "type": "string",
                             "description": "Address of Company"
+                        },
+                        "tradelines": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "account_name": {
+                                        "type": "string",
+                                        "description": "Name of Company"
+                                    },
+                                    "account_number": {
+                                        "type": "string",
+                                        "description": "Account Number"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "Type of Account"
+                                    },
+                                    "balance": {
+                                        "type": "number",
+                                        "description": "Balance Owed"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "description": "Status Details"
+                                    },
+                                    "credit_limit": {
+                                        "type": "number",
+                                        "description": "Credit Limit/Original Amount"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "Address of Company"
+                                    }
+                                },
+                                "required": ["account_name", "account_number", "type", "balance", "status"]
+                            }
                         }
-                    }
+                    },
+                    "required": ["tradelines"]
                 }
             }
         }
     });
 
-    return JSON.parse(extraction_response.choices[0].message.content || '{}');
+    return extraction_response.choices[0].message.content;
 }

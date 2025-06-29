@@ -65,7 +65,7 @@ class ParsedTradeline:
     created_at: str = ""
     credit_limit: str = "$0"
     monthly_payment: str = "$0"
-    date_opened: str = "xxxx/xx/xx"
+    date_opened: str = "Unknown"
     is_negative: bool = False
     account_type: str = AccountType.CREDIT_CARD.value
     account_status: str = AccountStatus.OPEN.value
@@ -112,7 +112,6 @@ class TradelineParser:
             raise LLMParserError("GEMINI_API_KEY not found. Please check your .env file.")
         
         self.api_key = api_key
-        logger.info(f"API Key loaded: {len(api_key)} characters")
         
         try:
             genai.configure(api_key=api_key)
@@ -160,17 +159,16 @@ class TradelineParser:
             - monthly_payment (string with $)
             - account_status (string: open, closed, etc.)
             - account_type (string)
-            - date_opened (YYYY-MM-DD or "Unknown")
+            - date_opened (MM/DD/YYYY or "Unknown")
             - credit_bureau (equifax, experian, transunion, or "")
             - is_negative (boolean)
-            - raw_text (original snippet that was parsed)
 
             EXTRACTION RULES:
             0. If a field is not found, return an empty string ("") or false where appropriate. Return **only JSON**. Do not include explanations.
             1. Use empty strings for missing text fields
             2. Infer account_type from context (e.g., "Chase Credit Card" → "credit_card")
             3. Determine is_negative from keywords like: collection, charge-off, delinquent, past due
-            4. Use the first valid date found for date_opened, format as MM/DDYYYY
+            4. Use the first valid date found for date_opened, format as MM/DD/YYYY
             5. Return ONLY the JSON object - no additional text
 
 TRADELINE TEXT:
@@ -249,7 +247,7 @@ TRADELINE TEXT:
             warnings.append("Invalid is_negative value, defaulting to False")
         
         # Remove any unwanted fields that might cause issues
-        unwanted_fields = ['raw_text', 'rawText', 'original_text', 'source_text', 'confidence_score']
+        unwanted_fields = ['raw_text', 'original_text', 'source_text', 'confidence_score']
         for field in unwanted_fields:
             if field in data:
                 del data[field]
@@ -390,64 +388,4 @@ def generate(text: str) -> Dict[str, Any]:
         return parser._generate_fallback_data(str(e))
 
 # Example usage and testing
-if __name__ == "__main__":
-    # Configure logging for testing
-    logging.basicConfig(level=logging.DEBUG)
-    
-    # Test configuration
-    config = ParserConfig(
-        debug_mode=True,
-        max_retries=2
-    )
-    
-    # Sample test data
-    test_data = [
-        """Account Name: Chase
-        Account Number: **** **** **** 1234
-        Balance: $1,250
-        Credit Limit: $5,000
-        Status: Open
-        Date Opened: 01/15/2020
-        Monthly Payment: $125""",
-        
-        """WELLS FARGO AUTO LOAN
-        Acct #456789****
-        Current Balance: $15,750
-        Original Amount: $25,000
-        Status: Current
-        Opened: 03/22/2019""",
-        
-        """CREDIT_BUREAU - 'Exerian'...;.0
-        Original Creditor: Medical Center
-        Account: ****5678
-        Balance: $850
-        Status: In Collection
-        Date Opened: 06/01/2021"""
-    ]
-    
-    # Test single parsing
-    parser = create_parser(config)
-    
-    for i, sample in enumerate(test_data):
-        print(f"\n{'='*50}")
-        print(f"Testing sample {i + 1}")
-        print(f"{'='*50}")
-        
-        try:
-            result = parser.parse_tradeline(sample)
-            print(json.dumps(result, indent=2))
-        except Exception as e:
-            print(f"Error: {e}")
-    
-    # Test batch processing
-    print(f"\n{'='*50}")
-    print("Testing batch processing")
-    print(f"{'='*50}")
-    
-    batch_results = parser.parse_multiple_tradelines(test_data)
-    for i, result in enumerate(batch_results):
-        print(f"\nResult {i + 1}:")
-        if result:
-            print(f"Creditor: {result.get('creditor_name', 'Unknown')}")
-        else:
-            print("Failed to parse")
+# Example usage and testing code has been moved to a separate test file (e.g., test_llm_parser.py) for better maintainability.

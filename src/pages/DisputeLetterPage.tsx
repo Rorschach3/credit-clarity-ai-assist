@@ -1,4 +1,4 @@
-
+// src/pages/DisputeLetterPage.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -38,49 +38,64 @@ const DisputeLetterPage = () => {
       console.log("Location state:", location.state);
 
       try {
-        // Fetch tradelines for user from Supabase
-        const userTradelines = await fetchUserTradelines(user.id);
-        console.log("=== Fetched tradelines from DB ===", userTradelines);
-        setTradelines(userTradelines);
+        // Check if tradelines were passed from previous page
+        const passedData = location.state as { 
+          selectedTradelines?: ParsedTradeline[];
+          allTradelines?: ParsedTradeline[];
+        } | null;
 
-        // Get selected tradeline IDs from navigation state
-        const { selectedTradelineIds } = (location.state || {}) as { selectedTradelineIds?: string[] };
-        console.log("=== Selected IDs from navigation ===", selectedTradelineIds);
-        
-        if (selectedTradelineIds && selectedTradelineIds.length > 0) {
-          // Filter fetched tradelines based on selected IDs
-          const preSelected = userTradelines.filter(tl => {
-            console.log(`Checking tradeline ${tl.id} against selected IDs`);
-            return selectedTradelineIds.includes(tl.id || '');
-          });
-          console.log("=== Pre-selected tradelines ===", preSelected);
-          setSelectedTradelines(preSelected);
+        let userTradelines: ParsedTradeline[] = [];
+        let initialSelectedTradelines: ParsedTradeline[] = [];
+
+        if (passedData?.allTradelines && passedData.allTradelines.length > 0) {
+          // Use tradelines passed from previous page (preferred)
+          console.log("=== Using tradelines from navigation state ===");
+          userTradelines = passedData.allTradelines;
+          initialSelectedTradelines = passedData.selectedTradelines || [];
         } else {
-          console.log("=== No selected IDs found in navigation state ===");
+          // Fallback: fetch from database
+          console.log("=== Fetching tradelines from database (fallback) ===");
+          userTradelines = await fetchUserTradelines(user.id);
+          
+          // If there were selected tradeline IDs passed, try to match them
+          if (passedData?.selectedTradelines) {
+            initialSelectedTradelines = passedData.selectedTradelines;
+          }
         }
 
-        // Autofill user info from Supabase profile
+        console.log("=== Final tradelines ===", userTradelines);
+        console.log("=== Initial selected tradelines ===", initialSelectedTradelines);
+
+        setTradelines(userTradelines);
+        setSelectedTradelines(initialSelectedTradelines);
+
+        // Autofill user info from user profile
         setUserInfo({
-          name: user.email || "",
-          address: "",
-          city: "",
-          state: "",
-          zip: "",
+          name: user.user_metadata?.full_name || user.email || "",
+          address: user.user_metadata?.address || "",
+          city: user.user_metadata?.city || "",
+          state: user.user_metadata?.state || "",
+          zip: user.user_metadata?.zip || "",
         });
-        console.log("User info set:", {
-          name: user.email || "",
-          address: "",
-          city: "",
-          state: "",
-          zip: "",
+
+        console.log("=== User info set ===", {
+          name: user.user_metadata?.full_name || user.email || "",
+          address: user.user_metadata?.address || "",
+          city: user.user_metadata?.city || "",
+          state: user.user_metadata?.state || "",
+          zip: user.user_metadata?.zip || "",
         });
 
       } catch (error) {
         console.error("=== Error in loadData ===", error);
-        toast({ title: "Error", description: "Failed to load tradelines or user info." });
+        toast({ 
+          title: "Error", 
+          description: "Failed to load tradelines or user info.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
-        console.log("Loading finished.");
+        console.log("=== Loading finished ===");
       }
     };
 
@@ -88,15 +103,62 @@ const DisputeLetterPage = () => {
   }, [user, navigate, location.state]);
 
   const handleProceed = () => {
-    console.log("Proceed to Step 3 button clicked.");
-    console.log("Selected Tradelines length:", selectedTradelines.length);
+    console.log("=== Proceed to Step 3 button clicked ===");
+    console.log("Selected Tradelines count:", selectedTradelines.length);
     console.log("Selected Tradelines:", selectedTradelines);
-    // Navigate to dispute packet page
-    navigate("/dispute-packet");
+    console.log("User Info:", userInfo);
+    console.log("Letter content:", letter);
+
+    // Validate required fields
+    if (selectedTradelines.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one tradeline to dispute.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!userInfo.name || !userInfo.address || !userInfo.city || !userInfo.state || !userInfo.zip) {
+      toast({
+        title: "Validation Error", 
+        description: "Please fill in all required user information fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Navigate to dispute packet page with all necessary data
+    navigate("/dispute-packet", {
+      state: {
+        selectedTradelines,
+        userInfo,
+        letter,
+        allTradelines: tradelines
+      }
+    });
+  };
+
+  const handleGoBack = () => {
+    navigate(-1); // Go back to previous page
   };
 
   // Only allow selection of negative tradelines
   const negativeTradelines = tradelines.filter((t) => t.is_negative);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-background text-foreground py-10 px-4 md:px-10">
+          <Card className="max-w-6xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <p className="text-lg">Loading tradelines and user information...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -104,17 +166,31 @@ const DisputeLetterPage = () => {
         <Card className="max-w-6xl mx-auto space-y-6">
           <CardHeader>
             <CardTitle className="text-2xl">Step 2: Draft Dispute Letter</CardTitle>
+            <p className="text-muted-foreground">
+              Select tradelines to dispute, enter your information, and review the generated letter.
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {loading ? (
-              <p>Loading...</p>
+            {/* Show message if no negative tradelines */}
+            {negativeTradelines.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-lg text-muted-foreground">
+                  No negative tradelines found to dispute.
+                </p>
+                <Button onClick={handleGoBack} className="mt-4">
+                  Go Back
+                </Button>
+              </div>
             ) : (
               <>
                 <TradelineList
                   tradelines={negativeTradelines}
                   selected={selectedTradelines}
                   setSelected={setSelectedTradelines}
-                  onAddManual={() => toast({ title: "Info", description: "Manual add not available here." })}
+                  onAddManual={() => toast({ 
+                    title: "Info", 
+                    description: "Manual tradeline addition is not available on this page. Please use the upload page." 
+                  })}
                 />
 
                 <UserInfoForm userInfo={userInfo} onChange={setUserInfo} />
@@ -127,9 +203,16 @@ const DisputeLetterPage = () => {
                   setShowDocsSection={() => {}}
                 />
 
-                <div className="flex justify-end space-x-4">
-                  <Button onClick={handleProceed} disabled={selectedTradelines.length === 0}>
-                    Proceed to Step 3 ({selectedTradelines.length})
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={handleGoBack}>
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={handleProceed} 
+                    disabled={selectedTradelines.length === 0}
+                    className="min-w-[200px]"
+                  >
+                    Proceed to Step 3 ({selectedTradelines.length} selected)
                   </Button>
                 </div>
               </>

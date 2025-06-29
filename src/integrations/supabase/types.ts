@@ -240,22 +240,25 @@ export type Database = {
         Row: {
           content: string | null
           embedding: string | null
-          id: number
+          id: string // Changed from number to string
           metadata: Json | null
+          status: string | null
           user_id: string
         }
         Insert: {
           content?: string | null
           embedding?: string | null
-          id?: number
+          id?: string // Changed from number to string
           metadata?: Json | null
+          status?: string | null
           user_id: string
         }
         Update: {
           content?: string | null
           embedding?: string | null
-          id?: number
+          id?: string // Changed from number to string
           metadata?: Json | null
+          status?: string | null
           user_id?: string
         }
         Relationships: []
@@ -338,7 +341,7 @@ export type Database = {
           id: string
           is_negative: boolean
           monthly_payment: string | null
-          raw_text: string | null
+          rawText: string | null
           user_id: string
         }
         Insert: {
@@ -353,9 +356,9 @@ export type Database = {
           date_opened?: string | null
           dispute_count?: number | null
           id?: string
-          isNegative?: boolean
+          is_negative?: boolean
           monthly_payment?: string | null
-          raw_text?: string | null
+          rawText?: string | null
           user_id: string
         }
         Update: {
@@ -370,9 +373,9 @@ export type Database = {
           date_opened?: string | null
           dispute_count?: number | null
           id?: string
-          isNegative?: boolean
+          is_negative?: boolean
           monthly_payment?: string | null
-          raw_text?: string | null
+          rawText?: string | null
           user_id?: string
         }
         Relationships: []

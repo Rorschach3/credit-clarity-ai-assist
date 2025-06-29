@@ -13,13 +13,14 @@ serve(async (req) => {
   }
 
   try {
-    const { file, mimeType } = await req.json();
+    const { file: base64File, mimeType } = await req.json();
+    const fileUint8Array = Uint8Array.from(atob(base64File as string), c => c.charCodeAt(0));
 
     if (!file || !mimeType) {
       return new Response("Missing file or mimeType", { status: 400 });
     }
 
-    const text = await processDocument(new Uint8Array(file), mimeType, PROJECT_ID, LOCATION, PROCESSOR_ID, SERVICE_ACCOUNT_KEY);
+    const text = await processDocument(fileUint8Array, mimeType, PROJECT_ID, LOCATION, PROCESSOR_ID, SERVICE_ACCOUNT_KEY);
     return new Response(JSON.stringify({ text }), {
       headers: { 'Content-Type': 'application/json' },
     });

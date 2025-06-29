@@ -37,24 +37,18 @@ export function Navbar() {
           <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
             About
           </Link>
-          {/* <Link to="/credit-report-upload" className="text-sm font-medium transition-colors hover:text-primary">
-            Credit Report Upload
-          </Link> */}
-          {/* <Link to="/credit-reports" className="text-sm font-medium transition-colors hover:text-primary">
-            Credit Reports
-          </Link> */}
-          {/* <Link to="/dispute-letter" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link to="/credit-report-upload" className="text-sm font-medium transition-colors hover:text-primary">
+            PDF Upload
+          </Link>
+          <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
+            Reports
+          </Link>
+          <Link to="/dispute-letter" className="text-sm font-medium transition-colors hover:text-primary">
             Dispute Letter
-          </Link> */}
-          {/* <Link to="/dispute-packet" className="text-sm font-medium transition-colors hover:text-primary">
-            Dispute Packet
-          </Link> */}
-          {/* <Link to="/dispute-wizard" className="text-sm font-medium transition-colors hover:text-primary">
-            Dispute Wizard
-          </Link> */}
-          {/* <Link to="/dispute-wizard2" className="text-sm font-medium transition-colors hover:text-primary">
-            Dispute Wizard 2
-          </Link> */}
+          </Link>
+          <Link to="/contact" className="text-sm font-medium transition-colors hover:text-primary">
+            Contact
+          </Link>
           <Link to="/faq" className="text-sm font-medium transition-colors hover:text-primary">
             FAQ
           </Link>
@@ -121,11 +115,17 @@ export function Navbar() {
               <Link to="/blog" className="block text-sm font-medium transition-colors hover:text-primary">
                 Blog
               </Link>
-              <Link to="/credit-reports" className="block text-sm font-medium transition-colors hover:text-primary">
-                Credit Reports
-              </Link>
               <Link to="/credit-report-upload" className="block text-sm font-medium transition-colors hover:text-primary">
-                Credit Report Upload
+                PDF Upload
+              </Link>
+              <Link to="/dashboard" className="block text-sm font-medium transition-colors hover:text-primary">
+                Reports
+              </Link>
+              <Link to="/dispute-letter" className="block text-sm font-medium transition-colors hover:text-primary">
+                Dispute Letter
+              </Link>
+              <Link to="/contact" className="block text-sm font-medium transition-colors hover:text-primary">
+                Contact
               </Link>
               <Link to="/faq" className="block text-sm font-medium transition-colors hover:text-primary">
                 FAQ

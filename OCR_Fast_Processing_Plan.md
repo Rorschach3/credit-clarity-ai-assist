@@ -1,6 +1,3 @@
-# Plan: Configure 'OCR Fast' as Singular Processing Method
-
-**Goal**: Modify the `CreditReportUploadPage.tsx` to exclusively use the 'OCR (Fast)' processing method, removing the option for 'AI Enhanced' processing.
 
 ## Mermaid Diagram: Current Processing Flow
 
@@ -46,7 +43,3 @@ graph TD
         *   Remove the `showAiResults` conditional rendering block (lines 531-556) and any other UI elements related to displaying AI analysis results.
     *   **Update Imports**:
         *   Remove imports related to AI processing, such as `parseDocumentViaProxy` and `generateContent` from `@/services/llm-parser`.
-
-**Rationale**:
-
-By making these changes, the application will exclusively use the `processWithOCR` function for extracting text from uploaded PDF documents. This aligns with the requirement to configure 'OCR Fast' as the singular processing method. Future optimizations can then focus on enhancing the OCR pipeline itself.
