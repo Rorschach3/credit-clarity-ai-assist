@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  CheckCircle, AlertCircle, FileText, TrendingUp
+  CheckCircle, AlertCircle, FileText
 } from 'lucide-react';
 import { usePersistentProfile } from "@/hooks/usePersistentProfile";
 import { useDashboardMetrics } from "@/hooks/queries/useDashboardQueries";
@@ -14,8 +14,7 @@ const SimpleCreditDashboard: React.FC = () => {
     metrics, 
     rawData, 
     isLoading, 
-    error,
-    hasData 
+    error
   } = useDashboardMetrics();
 
   if (error) {

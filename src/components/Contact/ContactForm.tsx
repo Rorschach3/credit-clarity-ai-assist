@@ -1,8 +1,9 @@
 import React from 'react';
-import { motion, easeOut } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { contactFormSchema, ContactFormInputs } from '@/lib/validation/contactFormSchema';
+import { contactFormSchema, type ContactFormInputs } from '@/lib/validation/contactFormSchema';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const ContactForm: React.FC = () => {
   const {
@@ -15,97 +16,145 @@ const ContactForm: React.FC = () => {
   });
 
   const onSubmit = async (data: ContactFormInputs) => {
-    console.log(data);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    alert('Message sent successfully!');
-    reset();
-  };
-
-  const fadeInAnimation = {
-    initial: { opacity: 0, y: 50 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.3 },
-    transition: { duration: 0.8, ease: easeOut },
+    try {
+      // Simulate form submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Contact form submitted:', data);
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
+      reset();
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      toast.error('Failed to send message. Please try again.');
+    }
   };
 
   return (
-    <section id="contact" className="bg-background py-20">
-      <div className="container mx-auto px-4 text-center">
-        <motion.h2
-          {...fadeInAnimation}
-          className="mb-12 text-4xl font-bold text-foreground"
-        >
-          Get In Touch
-        </motion.h2>
-        <motion.form
-          {...fadeInAnimation}
-          className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 shadow-lg"
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <div className="mb-4 text-left">
-            <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
-              Name
+    <div className="max-w-md mx-auto bg-card p-6 rounded-lg shadow-lg">
+      <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Contact Us</h2>
+      
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label htmlFor="first_name" className="block text-sm font-medium text-foreground mb-1">
+            First Name *
+          </label>
+          <input
+            type="text"
+            id="first_name"
+            {...register('first_name')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {errors.first_name && <p className="mt-1 text-sm text-destructive">{errors.first_name.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="last_name" className="block text-sm font-medium text-foreground mb-1">
+            Last Name *
+          </label>
+          <input
+            type="text"
+            id="last_name"
+            {...register('last_name')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {errors.last_name && <p className="mt-1 text-sm text-destructive">{errors.last_name.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+            Email *
+          </label>
+          <input
+            type="email"
+            id="email"
+            {...register('email')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="phone_number" className="block text-sm font-medium text-foreground mb-1">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            id="phone_number"
+            {...register('phone_number')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="(555) 123-4567"
+          />
+          {errors.phone_number && <p className="mt-1 text-sm text-destructive">{errors.phone_number.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="address1" className="block text-sm font-medium text-foreground mb-1">
+            Address *
+          </label>
+          <input
+            type="text"
+            id="address1"
+            {...register('address1')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="123 Main Street"
+          />
+          {errors.address1 && <p className="mt-1 text-sm text-destructive">{errors.address1.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-foreground mb-1">
+              City *
             </label>
             <input
               type="text"
-              id="name"
-              {...register('name')}
+              id="city"
+              {...register('city')}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>}
+            {errors.city && <p className="mt-1 text-sm text-destructive">{errors.city.message}</p>}
           </div>
 
-          <div className="mb-4 text-left">
-            <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              {...register('email')}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
-          </div>
-
-          <div className="mb-4 text-left">
-            <label htmlFor="phone" className="mb-2 block text-sm font-medium text-foreground">
-              Phone (Optional)
+          <div>
+            <label htmlFor="state" className="block text-sm font-medium text-foreground mb-1">
+              State *
             </label>
             <input
               type="text"
-              id="phone"
-              {...register('phone')}
+              id="state"
+              {...register('state')}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="CA"
+              maxLength={2}
             />
+            {errors.state && <p className="mt-1 text-sm text-destructive">{errors.state.message}</p>}
           </div>
+        </div>
 
-          <div className="mb-6 text-left">
-            <label htmlFor="message" className="mb-2 block text-sm font-medium text-foreground">
-              Message
-            </label>
-            <textarea
-              id="message"
-              rows={5}
-              {...register('message')}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            ></textarea>
-            {errors.message && <p className="mt-1 text-sm text-destructive">{errors.message.message}</p>}
-          </div>
+        <div>
+          <label htmlFor="zip_code" className="block text-sm font-medium text-foreground mb-1">
+            ZIP Code *
+          </label>
+          <input
+            type="text"
+            id="zip_code"
+            {...register('zip_code')}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="12345"
+            maxLength={5}
+          />
+          {errors.zip_code && <p className="mt-1 text-sm text-destructive">{errors.zip_code.message}</p>}
+        </div>
 
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={isSubmitting}
-            className="rounded-full bg-primary px-8 py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-300 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Sending...' : 'Send Message'}
-          </motion.button>
-        </motion.form>
-      </div>
-    </section>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="w-full"
+        >
+          {isSubmitting ? 'Sending...' : 'Send Message'}
+        </Button>
+      </form>
+    </div>
   );
 };
 
