@@ -41,9 +41,10 @@ export const useDashboardMetrics = () => {
     },
     // Recent activity (last 30 days)
     recentActivity: {
-      newDisputes: data.disputes.filter(d => {
-        const disputeDate = new Date(d.created_at);
-        const thirtyDaysAgo = new Date();
+       newDisputes: data.disputes.filter(d => {
+         if (!d.created_at) return false;
+         const disputeDate = new Date(d.created_at);
+         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return disputeDate >= thirtyDaysAgo;
       }).length,
@@ -110,29 +111,29 @@ export const useDashboardChartData = () => {
       date.setMonth(date.getMonth() - i);
       const monthYear = date.toISOString().slice(0, 7); // YYYY-MM format
       
-      const disputesThisMonth = data.disputes.filter(d => 
-        d.created_at.startsWith(monthYear)
-      ).length;
+       const disputesThisMonth = data.disputes.filter(d => 
+         d.created_at && d.created_at.startsWith(monthYear)
+       ).length;
       
-      const resolvedThisMonth = data.disputes.filter(d => 
-        d.status === 'completed' && 
-        d.modified_at && 
-        d.modified_at.startsWith(monthYear)
-      ).length;
+       const resolvedThisMonth = data.disputes.filter(d => 
+         d.status === 'completed' && 
+         d.modified_at && 
+         d.modified_at.startsWith(monthYear)
+       ).length;
       
-      return {
-        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        disputes: disputesThisMonth,
-        resolved: resolvedThisMonth,
-      };
+       return {
+         month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+         disputes: disputesThisMonth,
+         resolved: resolvedThisMonth,
+       };
     }).reverse(),
     
-    // Progress over time
-    progressData: data.disputes.map(dispute => ({
-      date: new Date(dispute.created_at).toLocaleDateString(),
-      status: dispute.status,
-      createdAt: dispute.created_at,
-    })).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+     // Progress over time
+     progressData: data.disputes.map(dispute => ({
+       date: dispute.created_at ? new Date(dispute.created_at).toLocaleDateString() : 'Unknown',
+       status: dispute.status,
+       createdAt: dispute.created_at || '',
+     })).sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
     
   } : null;
 
