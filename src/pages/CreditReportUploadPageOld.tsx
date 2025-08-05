@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast as sonnerToast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { saveTradelinesToDatabase, ParsedTradeline, loadAllTradelinesFromDatabase } from "@/utils/tradelineParser";
+import { saveTradelinesToDatabase, ParsedTradeline } from "@/utils/tradelineParser";
 import { ManualTradelineModal } from "@/components/disputes/ManualTradelineModal";
 import { FileUploadSection } from "@/components/credit-upload/FileUploadSection";
 import { TradelinesList } from "@/components/credit-upload/TradelinesList";
@@ -192,8 +192,6 @@ const CreditReportUploadPage = () => {
     loading: tradelinesLoading,
     error: tradelinesError,
     addTradelines,
-    updateTradeline: updatePersistentTradeline,
-    deleteTradeline: deletePersistentTradeline,
     refreshTradelines
   } = usePersistentTradelines();
 
@@ -638,7 +636,6 @@ const CreditReportUploadPage = () => {
             <PaginatedTradelinesList
               userId={user?.id || ""}
               onSelect={handleSelectTradeline}
-              onUpdate={updateTradeline}
               onDelete={deleteTradeline}
               selectedIds={selectedTradelineIds}
             />

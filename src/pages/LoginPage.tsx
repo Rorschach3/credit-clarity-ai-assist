@@ -130,7 +130,7 @@ export default function LoginPage() {
     e.preventDefault();
     setOtpLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         email: otpEmail,
         token: otpCode,
         type: "email",

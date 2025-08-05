@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
+// Remove unused import
 import { Database } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { CreditNavbar } from "@/components/navbar/CreditNavbar";
-import { AlertCircle, CheckCircle, X, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 import { useTradelines, useUpdateTradeline, useDeleteTradeline } from "@/hooks/queries/useTradelinesQueries";
 
 // Define Tradeline type from Supabase schema
@@ -32,11 +32,10 @@ interface SelectionState {
 }
 
 const NegativeTradelinesPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   // Use React Query for data fetching
-  const { data: accounts = [], isLoading, error: queryError, refetch } = useTradelines();
+  const { data: accounts = [], isLoading, error: queryError } = useTradelines();
   const updateTradelineMutation = useUpdateTradeline();
   const deleteTradelineMutation = useDeleteTradeline();
   
@@ -121,13 +120,7 @@ const NegativeTradelinesPage = () => {
       }));
   }, [accounts]);
 
-  // Simplified selection handlers
-  const handleBureauChange = useCallback((bureau: CreditBureau | null) => {
-    setSelection({
-      selectedBureau: bureau,
-      selectedTradelineIds: new Set()
-    });
-  }, []);
+  // Removed unused handleBureauChange function
 
   const handleTradelineToggle = useCallback((tradelineId: string, bureau: CreditBureau) => {
     setSelection(prev => {

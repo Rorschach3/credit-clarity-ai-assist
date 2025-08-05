@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DocumentUploadSection } from "@/components/disputes/DocumentUploadSection";
 import { MailingInstructions } from "@/components/disputes/MailingInstructions";
 import { CreditNavbar } from "@/components/navbar/CreditNavbar";
@@ -17,8 +17,6 @@ import { FileText, Package, AlertCircle, User, Loader2, Edit3, Save, X, RefreshC
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  loadAllTradelinesFromDatabase, 
-  getNegativeTradelines, 
   type ParsedTradeline 
 } from '@/utils/tradelineParser';
 import { usePersistentTradelines } from '@/hooks/usePersistentTradelines';
@@ -80,7 +78,6 @@ const CREDIT_BUREAU_ADDRESSES = {
 
 const DisputeWizardPage = () => {
   const { user } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
   
   // State management
@@ -415,7 +412,7 @@ ${profile.firstName} ${profile.lastName}`;
   };
 
   // Save dispute packet record with correct schema
-  const saveDisputePacketRecord = async (letters: GeneratedDisputeLetter[], filename: string) => {
+  const saveDisputePacketRecord = async (_letters: GeneratedDisputeLetter[], _filename: string) => {
     if (!disputeProfile?.id) {
       console.warn('[WARN] No user profile ID available for saving dispute record');
       return;
@@ -426,20 +423,11 @@ ${profile.firstName} ${profile.lastName}`;
       
       // Use the correct table name and column structure
       const { data, error } = await supabase
-        .from('dispute_packets') // Make sure this table exists
+        .from('disputes') // Use existing disputes table
         .insert({
-          id: uuidv4(),
           user_id: disputeProfile.id,
-          packet_name: filename,
-          letter_count: letters.length,
-          tradelines_disputed: JSON.stringify(letters.map(l => ({
-            bureau: l.creditBureau,
-            accounts: l.tradelines.map(t => ({
-              creditor: t.creditor_name,
-              account: t.account_number,
-              status: t.account_status
-            }))
-          }))),
+          credit_report_id: uuidv4(), // Required field
+          mailing_address: `${disputeProfile.address1}${disputeProfile.address2 ? ` ${disputeProfile.address2}` : ''}, ${disputeProfile.city}, ${disputeProfile.state} ${disputeProfile.zipCode}`,
           status: 'generated'
         })
         .select()
@@ -459,11 +447,7 @@ ${profile.firstName} ${profile.lastName}`;
     }
   };
 
-  // Handle document upload
-  const handleDocumentUpload = (documents: UploadedDocument[]) => {
-    setUploadedDocuments(prev => [...prev, ...documents]);
-    toast.success(`Added ${documents.length} identity document(s)`);
-  };
+  // Removed unused document upload handler
 
   // Handle manual PDF download
   const handleDownloadPDF = () => {
@@ -943,7 +927,6 @@ ${profile.firstName} ${profile.lastName}`;
                 <div className="space-y-4">
                   <DocumentUploadSection 
                     onClose={() => setShowDocsSection(false)}
-                    onUpload={handleDocumentUpload}
                   />
                   
                   {uploadedDocuments.length > 0 && (

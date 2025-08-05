@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Download, Plus, Trash2 } from 'lucide-react';
+import { Search, Download, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { usePaginatedTradelines } from '@/hooks/usePaginatedTradelines';
 import PaginatedTradelinesList from '@/components/credit-upload/PaginatedTradelinesList';
@@ -20,8 +20,6 @@ const TradelinesManagementPage = () => {
   const {
     tradelines,
     pagination,
-    loading,
-    error,
     refresh,
   } = usePaginatedTradelines({
     userId: user?.id || '',
@@ -41,13 +39,7 @@ const TradelinesManagementPage = () => {
     });
   };
 
-  const handleSelectAll = () => {
-    if (selectedIds.size === tradelines.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(tradelines.map(t => t.id)));
-    }
-  };
+  // Removed unused handleSelectAll function
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;

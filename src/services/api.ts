@@ -108,7 +108,7 @@ export const tradelinesApi = {
         throw new Error(`Failed to update ${errors.length} tradelines`);
       }
 
-      return results.map(result => result.data).filter(Boolean);
+      return results.map(result => result.data).filter((item): item is Tradeline => item !== null);
     });
   }
 };

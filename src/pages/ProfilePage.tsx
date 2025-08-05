@@ -20,8 +20,7 @@ export default function ProfilePage() {
   const { 
     profile: persistentProfile, 
     updateProfile, 
-    loading: profileLoading,
-    error: profileError 
+    loading: profileLoading
   } = usePersistentProfile();
   
   const profileSchema = z.object({
@@ -69,7 +68,7 @@ export default function ProfilePage() {
         last_four_of_ssn: persistentProfile.last_four_of_ssn || null,
         dob: persistentProfile.dob || null
       });
-      setAvatarUrl(persistentProfile.avatar_url || null);
+      setAvatarUrl(null); // Remove avatar_url reference
     }
   }, [persistentProfile]);
 
@@ -160,8 +159,7 @@ export default function ProfilePage() {
         zip_code: profile.zip_code || null,
         phone_number: profile.phone_number || null,
         last_four_of_ssn: profile.last_four_of_ssn || null,
-        dob: profile.dob || null,
-        avatar_url: avatarUrl || null
+        dob: profile.dob || null
       });
 
       // Success toast is handled by the hook
@@ -216,7 +214,7 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          avatar_url: newAvatarUrl,
+          id: user.id, // Add required id field
           updated_at: new Date().toISOString() 
         })
         .eq('user_id', user.id);
