@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { CreditNavbar } from "@/components/navbar/CreditNavbar"
-import CreditDashboard from "@/components/dashboard/CreditDashboard"
+import SimpleCreditDashboard from "@/components/dashboard/SimpleCreditDashboard"
 
 const Dashboard = () => {
   useAuth()
@@ -10,7 +10,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <CreditNavbar />
-      <CreditDashboard />
+      <SimpleCreditDashboard />
     </div>
   )
 }

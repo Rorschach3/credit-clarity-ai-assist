@@ -4,7 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 // Type definitions
 type Tradeline = Database["public"]["Tables"]["tradelines"]["Row"];
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
-type UserProfile = Database["public"]["Tables"]["user_personal_info"]["Row"];
+type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
 // Error handling wrapper
 const withErrorHandling = async <T>(operation: () => Promise<T>): Promise<T> => {
@@ -150,7 +150,7 @@ export const profileApi = {
   async getByUserId(userId: string): Promise<UserProfile | null> {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
-        .from("user_personal_info")
+        .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
@@ -164,7 +164,7 @@ export const profileApi = {
   async update(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
-        .from("user_personal_info")
+        .from("profiles")
         .upsert({ user_id: userId, ...updates })
         .select()
         .single();
