@@ -49,7 +49,7 @@ export const processFileWithOCR = async (
     message: 'Reading document content'
   });
 
-  const extractedText = await processor.processWithOCR(file);
+  await processor.processWithOCR(file);
 
   updateProgress({
     step: 'Parsing Tradelines...',

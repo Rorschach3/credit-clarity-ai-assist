@@ -165,7 +165,7 @@ export const profileApi = {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .upsert({ user_id: userId, ...updates })
+        .upsert({ id: crypto.randomUUID(), user_id: userId, ...updates }, { onConflict: 'user_id' })
         .select()
         .single();
 

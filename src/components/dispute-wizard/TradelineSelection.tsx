@@ -44,7 +44,6 @@ export const TradelineSelection: React.FC<TradelineSelectionProps> = ({
   }
 
   const allSelected = selectedTradelines.length === negativeTradelines.length;
-  const someSelected = selectedTradelines.length > 0;
 
   return (
     <Card>

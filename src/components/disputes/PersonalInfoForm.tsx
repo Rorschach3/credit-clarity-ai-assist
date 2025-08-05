@@ -113,17 +113,17 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
 
     try {
       const personalInfo = {
+        id: crypto.randomUUID(),
         first_name: values.firstName,
         last_name: values.lastName,
-        address: values.address,
+        address1: values.address,
         city: values.city,
         state: values.state,
-        zip: values.zip,
-        phone: values.phone,
+        zip_code: values.zip,
+        phone_number: values.phone,
         email: values.email,
-        ssnlastfour: values.ssnLastFour,
+        last_four_of_ssn: values.ssnLastFour,
         user_id: user.id,
-        updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase

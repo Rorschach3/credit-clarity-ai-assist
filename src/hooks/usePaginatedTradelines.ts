@@ -47,7 +47,7 @@ export const usePaginatedTradelines = ({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [options, setOptions] = useState<Required<PaginationOptions>>({
+  const [, setOptions] = useState<Required<PaginationOptions>>({
     page: 1,
     pageSize: 20,
     sortBy: 'created_at',

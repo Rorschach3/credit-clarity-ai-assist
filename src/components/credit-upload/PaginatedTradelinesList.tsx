@@ -20,7 +20,6 @@ import { PaginationOptions } from '@/utils/tradelineParser';
 interface PaginatedTradelinesListProps {
   userId: string;
   onSelect?: (id: string) => void;
-  onUpdate?: (id: string, updates: any) => void;
   onDelete?: (id: string) => void;
   selectedIds?: Set<string>;
 }
@@ -28,7 +27,6 @@ interface PaginatedTradelinesListProps {
 const PaginatedTradelinesList: React.FC<PaginatedTradelinesListProps> = ({
   userId,
   onSelect,
-  onUpdate,
   onDelete,
   selectedIds = new Set()
 }) => {
@@ -43,8 +41,6 @@ const PaginatedTradelinesList: React.FC<PaginatedTradelinesListProps> = ({
     setSorting,
     goToNextPage,
     goToPreviousPage,
-    goToFirstPage,
-    goToLastPage,
   } = usePaginatedTradelines({
     userId,
     initialOptions: { pageSize: 10 },

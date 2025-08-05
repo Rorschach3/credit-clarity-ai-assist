@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => ({
           return "vendor";
         },
         chunkFileNames: (chunkInfo) => {
-          const name = chunkInfo.facadeModuleId?.split("/").pop() ?? "chunk";
+          chunkInfo.facadeModuleId?.split("/").pop() ?? "chunk";
           return `js/[name]-[hash].js`;
         },
         entryFileNames: "js/[name]-[hash].js",

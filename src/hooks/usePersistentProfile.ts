@@ -140,9 +140,9 @@ export const usePersistentProfile = (): UsePersistentProfileReturn => {
       const { data, error: updateError } = await supabase
         .from('profiles')
         .upsert({
+          id: profile?.id || crypto.randomUUID(),
           user_id: user.id,
           ...updates,
-          updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id'
         })

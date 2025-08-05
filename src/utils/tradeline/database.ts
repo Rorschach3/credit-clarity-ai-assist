@@ -1,6 +1,7 @@
 
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { type ParsedTradeline } from "@/utils/tradelineParser";
 
 const uuidSchema = z.string().uuid();
 

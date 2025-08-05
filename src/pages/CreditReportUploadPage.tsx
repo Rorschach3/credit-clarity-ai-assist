@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState, Suspense } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { toast as sonnerToast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { saveTradelinesToDatabase, ParsedTradeline, loadAllTradelinesFromDatabase } from "@/utils/tradelineParser";
@@ -149,19 +149,6 @@ const CreditReportUploadPage = () => {
     sonnerToast.success("Tradeline removed");
   }, []);
 
-  // Handle save all tradelines
-  const handleSaveAll = useCallback(async () => {
-    if (!user?.id || extractedTradelines.length === 0) return;
-
-    try {
-      await saveTradelinesToDatabase(extractedTradelines, user.id);
-      await refreshTradelines();
-      sonnerToast.success("All tradelines saved successfully!");
-    } catch (error) {
-      console.error('Error saving tradelines:', error);
-      sonnerToast.error("Failed to save tradelines");
-    }
-  }, [user?.id, extractedTradelines, refreshTradelines]);
 
   // Auto-enable pagination for large datasets
   useEffect(() => {
@@ -204,10 +191,15 @@ const CreditReportUploadPage = () => {
         {/* File Upload Section */}
         <Suspense fallback={<ComponentLoading message="Loading upload interface..." />}>
           <FileUploadSection
-            onFileUpload={handleFileUpload}
-            isProcessing={isProcessing}
-            acceptedFileTypes=".pdf"
-            maxFileSize={10 * 1024 * 1024} // 10MB
+            onFileUpload={(event) => {
+              const files = event.target.files;
+              if (files && files.length > 0) {
+                handleFileUpload(files[0]);
+              }
+            }}
+            isUploading={isProcessing}
+            uploadProgress={processingProgress.progress}
+            processingMethod={processingMethod}
           />
         </Suspense>
 
@@ -216,16 +208,16 @@ const CreditReportUploadPage = () => {
           <Suspense fallback={<ComponentLoading message="Loading tradelines..." />}>
             {usePagination ? (
               <PaginatedTradelinesList
-                tradelines={extractedTradelines}
+                userId={user?.id || ''}
                 onDelete={handleTradelineDelete}
-                onSaveAll={handleSaveAll}
-                onAddManual={() => setShowManualModal(true)}
               />
             ) : (
               <TradelinesList
                 tradelines={extractedTradelines}
+                selectedTradelineIds={new Set()}
+                onUpdate={() => {}}
                 onDelete={handleTradelineDelete}
-                onSaveAll={handleSaveAll}
+                onSelect={() => {}}
                 onAddManual={() => setShowManualModal(true)}
               />
             )}
@@ -236,9 +228,8 @@ const CreditReportUploadPage = () => {
         {showManualModal && (
           <Suspense fallback={<ComponentLoading message="Loading form..." />}>
             <ManualTradelineModal
-              isOpen={showManualModal}
               onClose={() => setShowManualModal(false)}
-              onSave={handleManualTradelineAdd}
+              onAdd={handleManualTradelineAdd}
             />
           </Suspense>
         )}

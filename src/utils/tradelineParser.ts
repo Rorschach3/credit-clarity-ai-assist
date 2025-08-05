@@ -36,6 +36,11 @@ export const ParsedTradelineSchema = z.object({
 export type APITradeline = z.infer<typeof APITradelineSchema>;
 export type ParsedTradeline = z.infer<typeof ParsedTradelineSchema>;
 
+// Export type aliases for backward compatibility
+export type AccountType = 'credit_card' | 'loan' | 'mortgage' | 'auto_loan' | 'student_loan' | 'collection' | string;
+export type AccountStatus = 'open' | 'closed' | 'in_collection' | 'charged_off' | 'disputed' | string;
+export type CreditBureau = 'equifax' | 'transunion' | 'experian' | string;
+
 // Negative account indicators
 const NEGATIVE_INDICATORS = [
   'charged off', 'charge off', 'collection', 'collections',

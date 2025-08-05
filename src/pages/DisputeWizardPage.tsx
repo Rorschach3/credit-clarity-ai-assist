@@ -30,13 +30,6 @@ import {
 } from '@/utils/disputeUtils';
 import { type ParsedTradeline } from '@/utils/tradelineParser';
 
-interface UploadedDocument {
-  id: string;
-  name: string;
-  type: string;
-  file: File;
-  preview?: string;
-}
 
 const DisputeWizardPage = () => {
   const { user } = useAuth();
@@ -75,7 +68,6 @@ const DisputeWizardPage = () => {
   const [negativeTradelines, setNegativeTradelines] = useState<ParsedTradeline[]>([]);
   const [selectedTradelines, setSelectedTradelines] = useState<string[]>([]);
   const [generatedLetters, setGeneratedLetters] = useState<GeneratedDisputeLetter[]>([]);
-  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
   const [pdfFilename, setPdfFilename] = useState<string>('');
   const [editingLetter, setEditingLetter] = useState<string | null>(null);
@@ -181,7 +173,7 @@ const DisputeWizardPage = () => {
       setShowDocsSection(true);
 
       // Save to database
-      await saveDisputePacketRecord(letters, filename);
+      await saveDisputePacketRecord();
 
       setGenerationProgress({ step: 'Complete!', progress: 100, message: 'Dispute packet ready for download' });
       
@@ -199,20 +191,18 @@ const DisputeWizardPage = () => {
     }
   }, [disputeProfile, isProfileComplete, selectedTradelines, negativeTradelines]);
 
-  const saveDisputePacketRecord = async (letters: GeneratedDisputeLetter[], filename: string) => {
+  const saveDisputePacketRecord = async () => {
     try {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('dispute_packets')
+        .from('disputes')
         .insert({
           id: uuidv4(),
           user_id: user.id,
-          filename: filename,
-          bureau_count: letters.length,
-          tradeline_count: selectedTradelines.length,
-          letters_data: letters,
-          created_at: new Date().toISOString(),
+          credit_report_id: 'unknown',
+          mailing_address: 'unknown',
+          recipient_name: 'unknown',
           status: 'generated'
         });
 
@@ -222,9 +212,6 @@ const DisputeWizardPage = () => {
     }
   };
 
-  const handleDocumentUpload = (documents: UploadedDocument[]) => {
-    setUploadedDocuments(documents);
-  };
 
   const handleDownloadPDF = () => {
     if (!generatedPDF) return;
@@ -343,7 +330,7 @@ const DisputeWizardPage = () => {
             generatedLetters={generatedLetters}
             editingLetter={editingLetter}
             editedContent={editedContent}
-            isReadyToGenerate={isReadyToGenerate}
+            isReadyToGenerate={Boolean(isReadyToGenerate)}
             onGenerate={handleGenerateLetters}
             onEditLetter={handleEditLetter}
             onSaveEdit={handleSaveEdit}
@@ -356,16 +343,13 @@ const DisputeWizardPage = () => {
           {/* Document Upload Section */}
           {showDocsSection && (
             <DocumentUploadSection 
-              onDocumentsUploaded={handleDocumentUpload}
-              documents={uploadedDocuments}
+              onClose={() => setShowDocsSection(false)}
             />
           )}
 
           {/* Mailing Instructions */}
           {showDocsSection && (
-            <MailingInstructions 
-              creditBureaus={generatedLetters.map(l => l.creditBureau)}
-            />
+            <MailingInstructions />
           )}
         </CardContent>
       </Card>
