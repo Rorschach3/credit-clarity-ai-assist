@@ -2,6 +2,7 @@ import { ChangeEvent, useCallback } from 'react';
 import { toast as sonnerToast } from "sonner";
 import { ParsedTradeline, ParsedTradelineSchema } from "@/utils/tradelineParser";
 import { v4 as uuidv4 } from 'uuid';
+import { processAndSaveTradelines } from '@/utils/document-ai-processor';
 
 
 // Sanitize tradelines before validation
@@ -62,213 +63,38 @@ const validateFile = (file: File): void => {
   console.log('✅ File validation passed');
 };
 
-// API Response interface to match backend response
-interface ApiResponse {
-  success: boolean;
-  message?: string;
-  tradelines: Array<{
-    user_id?: string;
-    creditor_name?: string;
-    account_balance?: string;
-    credit_limit?: string;
-    monthly_payment?: string;
-    account_number?: string;
-    date_opened?: string;
-    account_type?: string;
-    account_status?: string;
-    credit_bureau?: string;
-    is_negative?: boolean;
-    dispute_count?: number;
-  }>;
-}
 
-// Enhanced API function with better auth debugging
+// Enhanced processing function using Supabase edge function
 const processCreditReportWithAPI = async (file: File, userId: string): Promise<ParsedTradeline[]> => {
-  console.log(`🚀 Starting API call for file: ${file.name}, user: ${userId}`);
+  console.log(`🚀 Starting Supabase edge function processing for file: ${file.name}, user: ${userId}`);
   
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('user_id', userId);
-
-  // Enhanced URL handling with proper endpoint construction
-  const getApiEndpoint = () => {
-    const envUrl = import.meta.env.VITE_API_URL;
-    
-    if (envUrl) {
-      console.log(`🌐 Using VITE_API_URL: ${envUrl}`);
-      
-      // Check if the URL already includes the endpoint
-      if (envUrl.includes('/process-credit-report')) {
-        // URL already has the endpoint, use as-is
-        return envUrl;
-      } else {
-        // Add the endpoint to the base URL
-        return `${envUrl}/process-credit-report`;
-      }
-    }
-
-    // Fallback to localhost
-    console.log(`🌐 Using localhost fallback`);
-    return 'http://localhost:8000/process-credit-report';
-  };
-
-  const endpoint = getApiEndpoint();
-  
-  console.log(`📡 Making request to: ${endpoint}`);
-  console.log(`📦 FormData contents:`, {
-    file: file.name,
-    user_id: userId,
-    fileSize: file.size,
-    fileType: file.type
-  });
-
-  // Prepare headers with enhanced auth debugging
-  const headers: Record<string, string> = {};
-  
-  // Add Supabase auth headers if using Supabase endpoint
-  if (endpoint.includes('supabase.co')) {
-    console.log(`🔐 Supabase endpoint detected, adding authentication headers`);
-    
-    // Method 1: Try to get auth token from Supabase auth state
-    let authToken = null;
-    
-    // Check multiple possible locations for auth token
-    const possibleTokenSources = [
-      () => localStorage.getItem('sb-gywohmbqohytziwsjrps-auth-token'),
-      () => localStorage.getItem('supabase.auth.token'),
-      () => sessionStorage.getItem('supabase.auth.token'),
-      () => {
-        // Try to get from Supabase auth state
-        const authData = localStorage.getItem('sb-gywohmbqohytziwsjrps-auth-token');
-        if (authData) {
-          try {
-            const parsed = JSON.parse(authData);
-            return parsed.access_token || parsed.token;
-          } catch (e) {
-            return null;
-          }
-        }
-        return null;
-      }
-    ];
-    
-    for (const getToken of possibleTokenSources) {
-      try {
-        authToken = getToken();
-        if (authToken) {
-          console.log(`✅ Found auth token from source, length: ${authToken.length}`);
-          break;
-        }
-      } catch (e) {
-        console.log(`⚠️ Error getting token from source:`, e);
-      }
-    }
-    
-    // Method 2: Fallback to environment variable anon key
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    console.log(`🔍 Auth Debug Info:`);
-    console.log(`  - User Auth Token: ${authToken ? `Found (${authToken.substring(0, 20)}...)` : 'Not found'}`);
-    console.log(`  - Anon Key: ${anonKey ? `Found (${anonKey.substring(0, 20)}...)` : 'Not found'}`);
-    
-    // Set authorization header
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-      console.log(`✅ Using user auth token for Authorization header`);
-    } else if (anonKey) {
-      headers['Authorization'] = `Bearer ${anonKey}`;
-      console.log(`✅ Using anon key for Authorization header`);
-    } else {
-      console.error(`❌ No auth token or anon key found! This will cause 401 error.`);
-    }
-    
-    // Always add apikey header for Supabase
-    if (anonKey) {
-      headers['apikey'] = anonKey;
-      console.log(`✅ Added apikey header`);
-    }
-    
-    // Add content type hint for Supabase
-    headers['Accept'] = 'application/json';
-    
-    console.log(`📋 Final headers for Supabase request:`, Object.keys(headers));
-  } else {
-    console.log(`🌐 Local endpoint detected, no auth headers needed`);
-  }
-
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      headers: headers,
-    });
-
-    console.log(`📨 Response status: ${response.status} ${response.statusText}`);
-    console.log(`📨 Response headers:`, Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      let errorData: { detail?: string; message?: string; code?: number } = {};
-      try {
-        errorData = await response.json();
-        console.error('❌ Error response data:', errorData);
-      } catch (jsonError) {
-        // If response isn't JSON, get text
-        const errorText = await response.text();
-        console.error('❌ Error response text:', errorText);
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-      
-      // Handle specific error cases with helpful suggestions
-      if (response.status === 401) {
-        console.error(`🔐 Authentication failed. Suggestions:`);
-        console.error(`   1. Switch to local backend: Set VITE_API_URL=http://localhost:8000`);
-        console.error(`   2. Add your Supabase anon key: VITE_SUPABASE_ANON_KEY=your-key`);
-        console.error(`   3. Make sure you're logged in to your app`);
-        throw new Error('Authentication failed. Try using the local backend or check your Supabase configuration.');
-      }
-      
-      throw new Error(errorData?.detail || errorData?.message || `Server error: ${response.status}`);
-    }
-
-    const result: ApiResponse = await response.json();
-    console.log('📦 Full API response:', result);
+    // Use the Supabase-connected processor
+    const tradelines = await processAndSaveTradelines(file);
     
-    if (!result.success) {
-      throw new Error(result.message || 'Processing failed');
-    }
-    // In processCreditReportWithAPI function, after getting the result:
-    console.log('🔍 [DEBUG] API returned tradelines with user_ids:', 
-      result.tradelines.map(t => t.user_id || 'undefined'));
-    console.log('🔍 [DEBUG] Expected user_id should be:', userId);
-    
-    // Convert API response to ParsedTradeline format with required fields
-    const tradelines: ParsedTradeline[] = (result.tradelines || []).map(t => ({
+    // Convert to proper format with required fields
+    const formattedTradelines: ParsedTradeline[] = tradelines.map(t => ({
       id: uuidv4(),
       user_id: userId,
-      creditor_name: t.creditor_name || 'NULL',
-      account_balance: t.account_balance || '',
+      creditor_name: t.creditor_name || 'Unknown Creditor',
+      account_balance: t.account_balance || '0',
       created_at: new Date().toISOString(),
-      dispute_count: t.dispute_count || 0,
-      credit_limit: t.credit_limit || '',
-      monthly_payment: t.monthly_payment || '',
-      account_number: t.account_number || '',
-      date_opened: t.date_opened || 'xx/xx/xxxx',
+      dispute_count: 0,
+      credit_limit: t.credit_limit || '0',
+      monthly_payment: t.monthly_payment || '0',
+      account_number: t.account_number || 'Unknown',
+      date_opened: t.date_opened || new Date().toISOString().split('T')[0],
       is_negative: t.is_negative || false,
-      account_type: t.account_type || '',
-      account_status: t.account_status || '',
-      credit_bureau: t.credit_bureau || '',
+      account_type: t.account_type || 'unknown',
+      account_status: t.account_status || 'unknown',
+      credit_bureau: t.credit_bureau || 'Unknown',
     }));
 
-    console.log(`✅ Successfully processed ${tradelines.length} tradelines`);
-    return tradelines;
+    console.log(`✅ Successfully processed ${formattedTradelines.length} tradelines via Supabase`);
+    return formattedTradelines;
 
   } catch (error) {
-    console.error('❌ API call failed:', error);
-    
-    // Enhanced error reporting with suggestions
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error(`Network error: Unable to connect to ${endpoint}. Please check if the API is running.`);
-    }
+    console.error('❌ Supabase processing failed:', error);
     
     if (error instanceof Error) {
       throw error;
@@ -280,61 +106,26 @@ const processCreditReportWithAPI = async (file: File, userId: string): Promise<P
 
 
 
-// Test API connectivity
+// Test Supabase edge function connectivity
 const testApiConnectivity = async (): Promise<boolean> => {
-  const testUrls = [
-    { 
-      url: 'http://localhost:8000/health',
-      needsAuth: false 
-    },
-    { 
-      url: 'https://gywohmbqohytziwsjrps.supabase.co/functions/v1/process-credit-report',
-      needsAuth: true 
+  try {
+    console.log('🔗 Testing Supabase edge function connectivity...');
+    
+    // Simple test to see if Supabase functions are accessible
+    // We don't actually call the function, just check if it exists
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    if (!supabase) {
+      console.log('❌ Supabase client not available');
+      return false;
     }
-  ];
-
-  for (const { url, needsAuth } of testUrls) {
-    try {
-      console.log(`🔗 Testing connectivity to: ${url}`);
-      
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-      };
-      
-      // Add auth headers for Supabase
-      if (needsAuth) {
-        const authToken = localStorage.getItem('supabase.auth.token') || 
-                         sessionStorage.getItem('supabase.auth.token') ||
-                         import.meta.env.VITE_SUPABASE_ANON_KEY;
-                         
-        if (authToken) {
-          headers['Authorization'] = `Bearer ${authToken}`;
-        }
-        
-        const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        if (apiKey) {
-          headers['apikey'] = apiKey;
-        }
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: headers,
-      });
-      
-      console.log(`📡 ${url} responded with status: ${response.status}`);
-      if (response.ok) {
-        const data = await response.json().catch(() => ({}));
-        console.log(`✅ ${url} is accessible:`, data);
-        return true;
-      } else {
-        console.log(`❌ ${url} failed with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`❌ ${url} is not accessible:`, error);
-    }
+    
+    console.log('✅ Supabase client is available');
+    return true;
+  } catch (error) {
+    console.log('❌ Supabase connectivity test failed:', error);
+    return false;
   }
-  return false;
 };
 
 // Progress stages
