@@ -16,6 +16,8 @@ export type ParsedTradeline = {
 };
 
 export async function processAndSaveTradelines(file: File): Promise<ParsedTradeline[]> {
+  console.log('🚀 Starting AWS Textract processing...');
+  
   // Use Supabase edge function for AWS Textract OCR processing
   const { data, error } = await supabase.functions.invoke('textract-ocr', {
     body: {
@@ -25,17 +27,22 @@ export async function processAndSaveTradelines(file: File): Promise<ParsedTradel
   });
 
   if (error) {
-    throw new Error(error.message || "Failed to process document with Textract");
+    console.error('❌ Textract processing error:', error);
+    throw new Error(error.message || "Failed to process document with AWS Textract");
   }
 
   if (!data?.text) {
-    throw new Error("No text extracted from document");
+    console.error('❌ No text extracted from document');
+    throw new Error("No text extracted from document by AWS Textract");
   }
 
-  console.log('Textract extracted text:', data.text.substring(0, 500) + '...');
+  console.log('✅ Textract extracted text length:', data.text.length);
+  console.log('📄 Textract text preview:', data.text.substring(0, 500) + '...');
 
   // Parse the extracted text into tradelines using enhanced parser
   const tradelines = parseTextToTradelines(data.text);
+  console.log('✅ Parsed tradelines:', tradelines.length);
+  
   return tradelines;
 }
 
