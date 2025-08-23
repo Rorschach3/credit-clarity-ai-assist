@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       admin_activity_logs: {
@@ -33,51 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
-      apps: {
-        Row: {
-          id: number
-          name: string | null
-        }
-        Insert: {
-          id?: number
-          name?: string | null
-        }
-        Update: {
-          id?: number
-          name?: string | null
-        }
-        Relationships: []
-      }
       audit_history: {
         Row: {
           created_at: string
           id: string
           new_values: Json | null
           old_values: Json | null
-          operation: string
+          operation: string | null
           performed_by: string | null
-          record_id: string
-          table_name: string
+          record_id: string | null
+          table_name: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           new_values?: Json | null
           old_values?: Json | null
-          operation: string
+          operation?: string | null
           performed_by?: string | null
-          record_id: string
-          table_name: string
+          record_id?: string | null
+          table_name?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           new_values?: Json | null
           old_values?: Json | null
-          operation?: string
+          operation?: string | null
           performed_by?: string | null
-          record_id?: string
-          table_name?: string
+          record_id?: string | null
+          table_name?: string | null
         }
         Relationships: []
       }
@@ -104,33 +94,6 @@ export type Database = {
           encryption_key_id?: string | null
           id?: string
           report_date?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      credit_transactions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          letter_id: string | null
-          type: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          id?: string
-          letter_id?: string | null
-          type: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          letter_id?: string | null
-          type?: string
           user_id?: string
         }
         Relationships: []
@@ -181,43 +144,47 @@ export type Database = {
           user_id?: string
           zip?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "dispute_letter_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_personal_info"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
-      dispute_log: {
+      dispute_packets: {
         Row: {
-          changed_at: string | null
-          dispute_id: string | null
+          bureau_count: number | null
+          created_at: string
+          dispute_letter_url: string | null
+          document_urls: string | null
+          file_name: string
+          file_path: string
           id: string
-          new_data: Json | null
-          old_data: Json | null
-          operation: string
-          user_id: string | null
+          metadata: Json | null
+          packet_status: string | null
+          status: string | null
+          user_id: string
         }
         Insert: {
-          changed_at?: string | null
-          dispute_id?: string | null
+          bureau_count?: number | null
+          created_at?: string
+          dispute_letter_url?: string | null
+          document_urls?: string | null
+          file_name: string
+          file_path: string
           id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation: string
-          user_id?: string | null
+          metadata?: Json | null
+          packet_status?: string | null
+          status?: string | null
+          user_id: string
         }
         Update: {
-          changed_at?: string | null
-          dispute_id?: string | null
+          bureau_count?: number | null
+          created_at?: string
+          dispute_letter_url?: string | null
+          document_urls?: string | null
+          file_name?: string
+          file_path?: string
           id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation?: string
-          user_id?: string | null
+          metadata?: Json | null
+          packet_status?: string | null
+          status?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -284,6 +251,63 @@ export type Database = {
         }
         Relationships: []
       }
+      experian_test: {
+        Row: {
+          account_balance: string | null
+          account_number: string | null
+          account_number_prefix: string | null
+          account_status: string | null
+          account_type: string | null
+          created_at: string | null
+          credit_bureau: string
+          credit_limit: string | null
+          creditor_name: string | null
+          date_opened: string | null
+          dispute_count: number | null
+          id: string
+          is_negative: boolean | null
+          monthly_payment: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_balance?: string | null
+          account_number?: string | null
+          account_number_prefix?: string | null
+          account_status?: string | null
+          account_type?: string | null
+          created_at?: string | null
+          credit_bureau?: string
+          credit_limit?: string | null
+          creditor_name?: string | null
+          date_opened?: string | null
+          dispute_count?: number | null
+          id?: string
+          is_negative?: boolean | null
+          monthly_payment?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_balance?: string | null
+          account_number?: string | null
+          account_number_prefix?: string | null
+          account_status?: string | null
+          account_type?: string | null
+          created_at?: string | null
+          credit_bureau?: string
+          credit_limit?: string | null
+          creditor_name?: string | null
+          date_opened?: string | null
+          dispute_count?: number | null
+          id?: string
+          is_negative?: boolean | null
+          monthly_payment?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       letters: {
         Row: {
           cost_cents: number
@@ -323,30 +347,6 @@ export type Database = {
         }
         Relationships: []
       }
-      mail_queue: {
-        Row: {
-          id: string
-          last_update: string | null
-          letter_id: string
-          queue_status: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          last_update?: string | null
-          letter_id: string
-          queue_status?: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          last_update?: string | null
-          letter_id?: string
-          queue_status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount_cents: number
@@ -376,83 +376,74 @@ export type Database = {
       }
       profiles: {
         Row: {
-          id: string
-          first_name: string | null
-          last_name: string | null
           address1: string | null
           address2: string | null
+          avatar_url: string | null
           city: string | null
-          phone_number: string | null
+          dob: string | null
+          first_name: string | null
+          id: string
           last_four_of_ssn: string | null
+          last_name: string | null
+          phone_number: string | null
           state: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           zip_code: string | null
-          dob: string | null
         }
         Insert: {
-          id: string
-          first_name?: string | null
-          last_name?: string | null
           address1?: string | null
           address2?: string | null
+          avatar_url?: string | null
           city?: string | null
-          phone_number?: string | null
+          dob?: string | null
+          first_name?: string | null
+          id?: string
           last_four_of_ssn?: string | null
+          last_name?: string | null
+          phone_number?: string | null
           state?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           zip_code?: string | null
-          dob?: string | null
         }
         Update: {
-          id: string
-          first_name?: string | null
-          last_name?: string | null
           address1?: string | null
           address2?: string | null
+          avatar_url?: string | null
           city?: string | null
-          phone_number?: string | null
+          dob?: string | null
+          first_name?: string | null
+          id?: string
           last_four_of_ssn?: string | null
+          last_name?: string | null
+          phone_number?: string | null
           state?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           zip_code?: string | null
-          dob?: string | null
         }
         Relationships: []
       }
-      subscription_plans: {
+      role_permissions: {
         Row: {
-          credits_per_month: number
-          id: string
-          is_active: boolean | null
-          name: string
-          price_cents: number
-          stripe_price_id: string | null
-          user_id: string
+          id: number
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
-          credits_per_month: number
-          id?: string
-          is_active?: boolean | null
-          name: string
-          price_cents: number
-          stripe_price_id?: string | null
-          user_id?: string
+          id?: number
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["app_role"]
         }
         Update: {
-          credits_per_month?: number
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          price_cents?: number
-          stripe_price_id?: string | null
-          user_id?: string
+          id?: number
+          permission?: Database["public"]["Enums"]["app_permission"]
+          role?: Database["public"]["Enums"]["app_role"]
         }
         Relationships: []
       }
-      tradelines: {
+      tradeline_test: {
         Row: {
           account_balance: string | null
           account_number: string | null
@@ -463,11 +454,9 @@ export type Database = {
           credit_limit: string | null
           creditor_name: string | null
           date_opened: string | null
-          dispute_count: number | null
-          id: string
-          is_negative: boolean | null
+          id: string | null
           monthly_payment: string | null
-          raw_text: string | null
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -480,11 +469,9 @@ export type Database = {
           credit_limit?: string | null
           creditor_name?: string | null
           date_opened?: string | null
-          dispute_count?: number | null
-          id?: string
-          is_negative?: boolean | null
+          id?: string | null
           monthly_payment?: string | null
-          raw_text?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -497,132 +484,112 @@ export type Database = {
           credit_limit?: string | null
           creditor_name?: string | null
           date_opened?: string | null
+          id?: string | null
+          monthly_payment?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tradelines: {
+        Row: {
+          account_balance: string | null
+          account_number: string | null
+          account_number_prefix: string | null
+          account_status: string | null
+          account_type: string | null
+          created_at: string | null
+          credit_bureau: string
+          credit_limit: string | null
+          creditor_name: string | null
+          date_opened: string | null
+          dispute_count: number | null
+          id: string
+          is_negative: boolean | null
+          monthly_payment: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_balance?: string | null
+          account_number?: string | null
+          account_number_prefix?: string | null
+          account_status?: string | null
+          account_type?: string | null
+          created_at?: string | null
+          credit_bureau?: string
+          credit_limit?: string | null
+          creditor_name?: string | null
+          date_opened?: string | null
           dispute_count?: number | null
           id?: string
           is_negative?: boolean | null
           monthly_payment?: string | null
-          raw_text?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_balance?: string | null
+          account_number?: string | null
+          account_number_prefix?: string | null
+          account_status?: string | null
+          account_type?: string | null
+          created_at?: string | null
+          credit_bureau?: string
+          credit_limit?: string | null
+          creditor_name?: string | null
+          date_opened?: string | null
+          dispute_count?: number | null
+          id?: string
+          is_negative?: boolean | null
+          monthly_payment?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
       }
       user_documents: {
         Row: {
-          created_at: string | null
           document_type: string | null
-          file_path: string | null
-          id: number
+          file_url: string | null
+          id: string
+          uploaded_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string | null
           document_type?: string | null
-          file_path?: string | null
-          id?: number
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string | null
           user_id?: string
         }
         Update: {
-          created_at?: string | null
           document_type?: string | null
-          file_path?: string | null
-          id?: number
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      user_personal_info: {
-        Row: {
-          address: string | null
-          city: string | null
-          email: string
-          first_Name: string | null
-          last_Name: string | null
-          phone: string | null
-          ssn_last_four: string | null
-          state: string | null
-          updated_at: string | null
-          user_id: string
-          zip: string | null
-        }
-        Insert: {
-          address?: string | null
-          city?: string | null
-          email: string
-          first_Name?: string | null
-          last_Name?: string | null
-          phone?: string | null
-          ssn_last_four?: string | null
-          state?: string | null
-          updated_at?: string | null
-          user_id: string
-          zip?: string | null
-        }
-        Update: {
-          address?: string | null
-          city?: string | null
-          email?: string
-          first_Name?: string | null
-          last_Name?: string | null
-          phone?: string | null
-          ssn_last_four?: string | null
-          state?: string | null
-          updated_at?: string | null
-          user_id?: string
-          zip?: string | null
         }
         Relationships: []
       }
       user_roles: {
         Row: {
           assigned_at: string
-          email: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          user_id: string | null
         }
         Insert: {
           assigned_at?: string
-          email: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          user_id?: string | null
         }
         Update: {
           assigned_at?: string
-          email?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_subscriptions: {
-        Row: {
-          ended_at: string | null
-          id: string
-          plan_id: string
-          started_at: string | null
-          status: string
-          stripe_subscription_id: string | null
-          user_id: string
-        }
-        Insert: {
-          ended_at?: string | null
-          id?: string
-          plan_id: string
-          started_at?: string | null
-          status?: string
-          stripe_subscription_id?: string | null
-          user_id: string
-        }
-        Update: {
-          ended_at?: string | null
-          id?: string
-          plan_id?: string
-          started_at?: string | null
-          status?: string
-          stripe_subscription_id?: string | null
-          user_id?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -637,9 +604,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
+      can_upload_dispute_packet: {
+        Args: { userid: string }
+        Returns: boolean
       }
       custom_access_token_hook: {
         Args: { event: Json }
@@ -649,116 +616,50 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
       has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
+        Args:
+          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
+          | { check_role: string }
         Returns: boolean
       }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
       match_documents: {
-        Args:
-          | Record<PropertyKey, never>
-          | { query_embedding: string; match_count?: number; filter?: Json }
-        Returns: undefined
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: number
+          metadata: Json
+          similarity: number
+        }[]
       }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
+      parse_flexible_date: {
+        Args: { p_date_string: string }
         Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
       update_user_profile_timestamp: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      vector_avg: {
-        Args: { "": number[] }
+      upsert_tradeline: {
+        Args: {
+          p_account_balance: string
+          p_account_number: string
+          p_account_status: string
+          p_account_type: string
+          p_credit_bureau: string
+          p_credit_limit: string
+          p_creditor_name: string
+          p_date_opened: string
+          p_is_negative: boolean
+          p_monthly_payment: string
+          p_user_id: string
+        }
         Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
     }
     Enums: {
       app_permission: "channels.delete" | "messages.delete"
       app_role: "admin" | "moderator" | "user"
-      bureau: "equifax" | "transunion" | "experian" | "null"
+      bureau: "equifax" | "transunion" | "experian" | "'" | "null"
       tradeline_status:
         | "open"
         | "closed"
@@ -786,21 +687,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -818,14 +723,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -841,14 +748,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -864,14 +773,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -879,14 +790,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
