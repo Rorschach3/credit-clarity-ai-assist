@@ -1,7 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'supabase/';
-import { z } from 'zod/';
+import { z } from 'https://deno.land/x/zod@v3.23.3/mod.ts';
 
 // Replicate the ParsedTradelineSchema for validation within the Edge Function
 const ParsedTradelineSchema = z.object({
