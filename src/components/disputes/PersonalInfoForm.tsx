@@ -19,17 +19,52 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-// Form schema with validation
+// Enhanced form schema with security validation
 const personalInfoSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  zip: z.string().min(5, "Zip code is required"),
-  phone: z.string().optional(),
-  email: z.string().email("Please enter a valid email address"),
-  ssnLastFour: z.string().length(4, "Please enter the last 4 digits of your SSN").regex(/^\d{4}$/, "Last 4 SSN digits must be numbers").optional(),
+  firstName: z.string()
+    .min(1, "First name is required")
+    .max(50, "First name must be less than 50 characters")
+    .regex(/^[a-zA-Z\s'-]+$/, "First name contains invalid characters"),
+    
+  lastName: z.string()
+    .min(1, "Last name is required")
+    .max(50, "Last name must be less than 50 characters")
+    .regex(/^[a-zA-Z\s'-]+$/, "Last name contains invalid characters"),
+    
+  address: z.string()
+    .min(1, "Address is required")
+    .max(100, "Address must be less than 100 characters")
+    .regex(/^[a-zA-Z0-9\s,.-]+$/, "Address contains invalid characters"),
+    
+  city: z.string()
+    .min(1, "City is required")
+    .max(50, "City must be less than 50 characters")
+    .regex(/^[a-zA-Z\s'-]+$/, "City contains invalid characters"),
+    
+  state: z.string()
+    .min(2, "State is required")
+    .max(2, "State must be 2 characters")
+    .regex(/^[A-Z]{2}$/, "State must be uppercase 2-letter code"),
+    
+  zip: z.string()
+    .regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format (use 12345 or 12345-6789)"),
+    
+  phone: z.string()
+    .regex(/^[\d\s\-\(\)\.]*$/, "Invalid phone number format")
+    .optional(),
+    
+  email: z.string()
+    .email("Please enter a valid email address")
+    .max(254, "Email address too long"),
+    
+  ssnLastFour: z.string()
+    .regex(/^\d{4}$/, "Last 4 SSN digits must be numbers")
+    .refine((val) => {
+      // Security: reject common weak patterns
+      const weakPatterns = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
+      return !weakPatterns.includes(val);
+    }, "Invalid SSN format")
+    .optional(),
 });
 
 type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
@@ -112,16 +147,24 @@ export function PersonalInfoForm({ onComplete }: PersonalInfoFormProps) {
     setIsLoading(true);
 
     try {
+      // Security: Sanitize inputs before storing
+      const sanitizeInput = (input: string): string => {
+        return input
+          .trim()
+          .replace(/[<>\"']/g, '') // Remove potential XSS characters
+          .substring(0, 1000); // Prevent overly long inputs
+      };
+
       const personalInfo = {
         id: crypto.randomUUID(),
-        first_name: values.firstName,
-        last_name: values.lastName,
-        address1: values.address,
-        city: values.city,
-        state: values.state,
-        zip_code: values.zip,
-        phone_number: values.phone,
-        email: values.email,
+        first_name: sanitizeInput(values.firstName),
+        last_name: sanitizeInput(values.lastName),
+        address1: sanitizeInput(values.address),
+        city: sanitizeInput(values.city),
+        state: values.state.toUpperCase(),
+        zip_code: sanitizeInput(values.zip),
+        phone_number: values.phone ? sanitizeInput(values.phone) : null,
+        email: values.email.toLowerCase().trim(),
         last_four_of_ssn: values.ssnLastFour,
         user_id: user.id,
       };

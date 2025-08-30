@@ -1,10 +1,11 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error?: Error }>;
   signup: (email: string, password: string) => Promise<{ error?: Error }>;
@@ -24,6 +25,7 @@ export const useAuth = () => {
 // Provider
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         if (mounted) {
+          setSession(session);
           setUser(session ? session.user : null);
           setIsLoading(false);
         }
@@ -62,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
         if (mounted) {
+          setSession(session);
           setUser(session?.user || null);
           setIsLoading(false);
         }
@@ -101,9 +105,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      // Fix critical security issue: Add emailRedirectTo parameter
+      const redirectUrl = `${window.location.origin}/`;
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       });
 
       if (error) {
@@ -136,6 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const value: AuthContextType = {
     user,
+    session,
     isLoading,
     login,
     signup,

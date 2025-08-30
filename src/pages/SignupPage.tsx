@@ -31,10 +31,14 @@ const handleSubmit = async (e: React.FormEvent) => {
   setIsLoading(true);
 
   try {
+    // Fix critical security issue: Add emailRedirectTo parameter
+    const redirectUrl = `${window.location.origin}/`;
+    
     const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
+        emailRedirectTo: redirectUrl,
         data: {
           first_name: formData.firstName,
           last_name: formData.lastName,

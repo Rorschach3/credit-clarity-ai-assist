@@ -1,21 +1,55 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QRCodeCanvas } from 'qrcode.react';
-import { Shield, Copy, Check } from 'lucide-react';
+import { Shield, Copy, Check, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const TotpSetup = () => {
-  const [secret] = useState('JBSWY3DPEHPK3PXP'); // This should be generated dynamically
+  const [secret, setSecret] = useState('');
+  const [qrCodeValue, setQrCodeValue] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const qrCodeValue = `otpauth://totp/Credit%20Clarity%20AI?secret=${secret}&issuer=Credit%20Clarity%20AI`;
+  // Fix critical security issue: Generate secure TOTP secret dynamically
+  useEffect(() => {
+    const generateTotpSecret = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-totp-secret');
+        
+        if (error) {
+          console.error('Error generating TOTP secret:', error);
+          toast({
+            title: "Error",
+            description: "Failed to generate TOTP secret",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        setSecret(data.secret);
+        setQrCodeValue(data.qrCodeValue);
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize TOTP setup",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    generateTotpSecret();
+  }, [toast]);
 
   const handleCopySecret = async () => {
     try {
@@ -64,7 +98,12 @@ const TotpSetup = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isVerified ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">Generating secure TOTP secret...</p>
+          </div>
+        ) : !isVerified ? (
           <>
             <div className="text-center">
               <QRCodeCanvas value={qrCodeValue} size={200} />
