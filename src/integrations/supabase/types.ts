@@ -504,9 +504,12 @@ export type Database = {
           creditor_name: string | null
           date_opened: string | null
           dispute_count: number | null
+          duplicate_of: string | null
+          extraction_method: string | null
           id: string
           is_negative: boolean | null
           monthly_payment: string | null
+          similarity_score: number | null
           updated_at: string | null
           user_id: string | null
         }
@@ -522,9 +525,12 @@ export type Database = {
           creditor_name?: string | null
           date_opened?: string | null
           dispute_count?: number | null
+          duplicate_of?: string | null
+          extraction_method?: string | null
           id?: string
           is_negative?: boolean | null
           monthly_payment?: string | null
+          similarity_score?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -540,13 +546,24 @@ export type Database = {
           creditor_name?: string | null
           date_opened?: string | null
           dispute_count?: number | null
+          duplicate_of?: string | null
+          extraction_method?: string | null
           id?: string
           is_negative?: boolean | null
           monthly_payment?: string | null
+          similarity_score?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tradelines_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "tradelines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_documents: {
         Row: {
@@ -595,7 +612,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      tradeline_analytics: {
+        Row: {
+          avg_similarity_score: number | null
+          credit_bureau: string | null
+          duplicates_found: number | null
+          extraction_method: string | null
+          first_processed: string | null
+          last_processed: string | null
+          negative_tradelines: number | null
+          total_tradelines: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       authorize: {
@@ -603,6 +633,19 @@ export type Database = {
           requested_permission: Database["public"]["Enums"]["app_permission"]
         }
         Returns: boolean
+      }
+      calculate_tradeline_similarity: {
+        Args: {
+          account1: string
+          account2: string
+          bureau1: string
+          bureau2: string
+          creditor1: string
+          creditor2: string
+          date1: string
+          date2: string
+        }
+        Returns: number
       }
       can_upload_dispute_packet: {
         Args: { userid: string }
@@ -615,6 +658,26 @@ export type Database = {
       fetch_tradelines: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
       }
       has_role: {
         Args:
@@ -634,6 +697,18 @@ export type Database = {
       parse_flexible_date: {
         Args: { p_date_string: string }
         Returns: string
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
       update_user_profile_timestamp: {
         Args: Record<PropertyKey, never>
