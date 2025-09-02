@@ -34,7 +34,7 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
   const getMethodLabel = () => {
     switch (processingMethod) {
       case 'ocr':
-        return 'OCR Processing';
+        return 'AWS Textract Processing';
       case 'ai':
         return 'AI Analysis';
       default:

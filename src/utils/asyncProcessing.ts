@@ -27,47 +27,55 @@ export interface ProcessingProgress {
   message: string;
 }
 
-// Async OCR processing
+// Async OCR processing with AWS Textract
 export const processFileWithOCR = async (
   file: File,
   userId: string,
   updateProgress: (progress: ProcessingProgress) => void
 ): Promise<ParsedTradeline[]> => {
   updateProgress({
-    step: 'Loading OCR Engine...',
+    step: 'Loading AWS Textract...',
     progress: 10,
-    message: 'Initializing text extraction'
+    message: 'Initializing AWS Textract processing'
   });
 
-  // Dynamically import OCR processor
-  const useCreditReportProcessing = await loadOCRProcessor();
-  const processor = useCreditReportProcessing(userId);
+  // Dynamically import Textract processor
+  const { processPdfWithTextract } = await import('@/utils/textract-processor');
 
   updateProgress({
-    step: 'Extracting Text...',
+    step: 'Processing with AWS Textract...',
     progress: 30,
-    message: 'Reading document content'
+    message: 'Extracting text from PDF using AWS Textract'
   });
 
-  await processor.processWithOCR(file);
+  try {
+    const result = await processPdfWithTextract(file, userId);
 
-  updateProgress({
-    step: 'Parsing Tradelines...',
-    progress: 70,
-    message: 'Identifying credit accounts'
-  });
+    if (!result.success) {
+      throw new Error(result.message || 'Textract processing failed');
+    }
 
-  // Simulate tradeline parsing
-  await new Promise(resolve => setTimeout(resolve, 1000));
+    updateProgress({
+      step: 'Parsing Tradelines...',
+      progress: 70,
+      message: `Found ${result.tradelines.length} tradelines in document`
+    });
 
-  updateProgress({
-    step: 'Finalizing...',
-    progress: 90,
-    message: 'Preparing results'
-  });
+    updateProgress({
+      step: 'Finalizing...',
+      progress: 90,
+      message: 'Preparing results'
+    });
 
-  // Return empty array for now - this would contain actual parsed tradelines
-  return [];
+    return result.tradelines;
+  } catch (error) {
+    updateProgress({
+      step: 'Error',
+      progress: 0,
+      message: 'AWS Textract processing failed'
+    });
+    throw error;
+  }
 };
 
 // Async AI processing

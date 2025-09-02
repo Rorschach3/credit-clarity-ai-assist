@@ -17,14 +17,14 @@ export const UploadMethodSelector: React.FC<UploadMethodSelectorProps> = ({
   const methods = [
     {
       id: 'ocr' as const,
-      name: 'OCR Processing',
-      description: 'Fast text extraction from PDF files',
+      name: 'AWS Textract',
+      description: 'AI-powered text extraction using AWS Textract',
       icon: <Eye className="h-5 w-5" />,
-      features: ['Quick processing', 'Basic text extraction', 'Good for simple reports'],
-      badge: 'Fast',
-      badgeVariant: 'secondary' as const,
-      pros: ['Faster processing', 'Lower resource usage', 'Good for clear PDFs'],
-      cons: ['May miss complex layouts', 'Less accurate for handwritten text']
+      features: ['AI-powered OCR', 'Advanced table detection', 'High accuracy'],
+      badge: 'Premium',
+      badgeVariant: 'default' as const,
+      pros: ['High accuracy OCR', 'Handles complex layouts', 'Professional-grade processing'],
+      cons: ['Requires AWS credentials', 'Cloud-based processing']
     },
     {
       id: 'ai' as const,
