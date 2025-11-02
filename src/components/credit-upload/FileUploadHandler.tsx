@@ -3,6 +3,7 @@ import { toast as sonnerToast } from "sonner";
 import { ParsedTradeline, ParsedTradelineSchema } from "@/utils/tradelineParser";
 import { v4 as uuidv4 } from 'uuid';
 import { processAndSaveTradelines } from '@/utils/document-ai-processor';
+import { validateAndFormatTradeline } from '@/utils/tradeline/validateAndFormat';
 
 
 // Sanitize tradelines before validation
@@ -248,24 +249,37 @@ export const useFileUploadHandler = ({
 
       console.log(`✅ ${validTradelines.length} of ${tradelines.length} tradelines are valid`);
 
+      // Step 6.5: Apply validateAndFormatTradeline to ensure all fields are properly formatted
+      console.log(`🎨 Formatting ${validTradelines.length} tradelines with validateAndFormatTradeline`);
+      const formattedTradelines = validTradelines.map((t, index) => {
+        const formatted = validateAndFormatTradeline(t);
+        console.log(`✅ Tradeline ${index + 1} formatted:`, {
+          creditor: formatted.creditor_name,
+          balance: formatted.account_balance,
+          limit: formatted.credit_limit,
+          payment: formatted.monthly_payment
+        });
+        return formatted;
+      });
+
       setUploadProgress(PROGRESS_STAGES.PARSING);
 
       // Step 7: Generate UI insights for display
-      if (validTradelines.length > 0) {
-        const creditorNames = validTradelines.map(t => t.creditor_name).filter(Boolean);
-        const accountTypes = validTradelines.map(t => t.account_type).filter(Boolean);
+      if (formattedTradelines.length > 0) {
+        const creditorNames = formattedTradelines.map(t => t.creditor_name).filter(Boolean);
+        const accountTypes = formattedTradelines.map(t => t.account_type).filter(Boolean);
         
         console.log('📊 Extracted creditors:', creditorNames);
         console.log('📊 Extracted account types:', accountTypes);
         
         setExtractedKeywords([...new Set([...creditorNames, ...accountTypes])]);
         
-        const insights = `Found ${validTradelines.length} tradelines. ` +
+        const insights = `Found ${formattedTradelines.length} tradelines. ` +
           `Creditors: ${creditorNames.slice(0, 3).join(', ')}${creditorNames.length > 3 ? '...' : ''}. ` +
           `Account types: ${[...new Set(accountTypes)].join(', ')}.`;
         
         setAiInsights(insights);
-        setExtractedText(`Successfully processed ${validTradelines.length} tradelines from ${file.name} in ${processingTime}ms`);
+        setExtractedText(`Successfully processed ${formattedTradelines.length} tradelines from ${file.name} in ${processingTime}ms`);
       } else {
         console.log('⚠️ No valid tradelines found');
         setExtractedText(`Processed ${file.name} but found no valid tradelines`);
@@ -274,11 +288,11 @@ export const useFileUploadHandler = ({
       setUploadProgress(PROGRESS_STAGES.COMPLETE);
       
       // Step 8: Complete upload
-      onUploadComplete(validTradelines);
+      onUploadComplete(formattedTradelines);
       
       // Success message
-      const message = validTradelines.length > 0 
-        ? `✅ Successfully processed ${validTradelines.length} tradeline${validTradelines.length !== 1 ? 's' : ''}!`
+      const message = formattedTradelines.length > 0 
+        ? `✅ Successfully processed ${formattedTradelines.length} tradeline${formattedTradelines.length !== 1 ? 's' : ''}!`
         : "⚠️ Document processed but no tradelines found.";
       
       console.log('🎉 Upload completed successfully');
