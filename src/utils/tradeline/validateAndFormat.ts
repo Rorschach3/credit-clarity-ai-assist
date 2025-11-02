@@ -14,7 +14,7 @@ import { ParsedTradeline } from '../tradelineParser';
 function formatUSD(value: string | number | null | undefined): string {
   // Handle null, undefined, or empty string
   if (value === null || value === undefined || value === '') {
-    return '$0';
+    return '$0.00';
   }
 
   // Convert to string and remove non-numeric characters except dots and minus
@@ -25,14 +25,14 @@ function formatUSD(value: string | number | null | undefined): string {
   
   // If not a valid number, return default
   if (isNaN(numericValue)) {
-    return '$0';
+    return '$0.00';
   }
 
   // Format as USD currency
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(numericValue);
 }
