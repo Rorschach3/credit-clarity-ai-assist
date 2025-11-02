@@ -10,8 +10,9 @@ import { ParsedTradeline } from '../tradelineParser';
  * Formats a number as USD currency string
  * @param value - The value to format (can be string or number)
  * @returns Formatted USD currency string (e.g., "$1,234.56")
+ * @export
  */
-function formatUSD(value: string | number | null | undefined): string {
+export function formatUSD(value: string | number | null | undefined): string {
   // Handle null, undefined, or empty string
   if (value === null || value === undefined || value === '') {
     return '$0.00';
@@ -44,10 +45,13 @@ function formatUSD(value: string | number | null | undefined): string {
  * @returns A new tradeline object with all fields validated and formatted
  */
 export function validateAndFormatTradeline(tradeline: Partial<ParsedTradeline>): ParsedTradeline {
-  // Required fields with defaults
+  // Required UUID fields - preserve original values (don't set defaults that would fail validation)
   const id = tradeline.id || '';
   const user_id = tradeline.user_id || '';
   const created_at = tradeline.created_at || new Date().toISOString();
+
+  // Note: If id or user_id are empty, they should be set by the caller before validation
+  // Empty strings will fail ParsedTradelineSchema validation which requires valid UUIDs
 
   // String fields with sensible defaults
   const creditor_name = tradeline.creditor_name?.trim() || 'N/A';
